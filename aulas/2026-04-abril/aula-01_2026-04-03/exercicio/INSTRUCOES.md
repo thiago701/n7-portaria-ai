@@ -1,45 +1,71 @@
-# Exercício Aula 01 - Montando Seu Primeiro Projeto
+# Exercício Aula 01 — Arquitetura do Projeto Python
 
-**Objetivo:** Criar a estrutura completa do seu primeiro projeto e fazer seu primeiro commit no Git.
+**Objetivo:** Configurar um projeto Python profissional com estrutura em camadas, clean code e boas práticas de engenharia de software.
 
 **Tempo estimado:** 1 hora e 30 minutos
 
-**Materiais necessários:**
-- Terminal (CMD no Windows, Terminal no Mac/Linux)
-- Git instalado
+**Pré-requisitos:**
 - Python 3.11+ instalado
-- Editor de texto (VSCode, PyCharm, ou similar)
+- Git instalado
+- VS Code (ou editor de sua preferência)
+- Noções básicas de Python (variáveis, funções, classes)
 
 ---
 
-## Passo 1: Criar a Estrutura de Pastas do Projeto
+## Visão Geral da Arquitetura
 
-Vamos criar as pastas que o projeto precisa. Pense em cada pasta como um "cômodo" da casa do seu projeto.
+Neste exercício, o arquivo `hello_portaria.py` simula a estrutura que nosso projeto terá quando separado em arquivos. Cada seção do código representa uma **camada**:
 
-### No seu terminal, faça isto:
+```
+┌─────────────────────────────────┐
+│  INTERFACE  (print/input)       │  ← Camada mais externa
+├─────────────────────────────────┤
+│  SERVIÇO    (PortariaService)   │  ← Lógica de negócio
+├─────────────────────────────────┤
+│  MODELO     (Morador, Visitante)│  ← Estrutura dos dados
+├─────────────────────────────────┤
+│  CONFIG     (constantes)        │  ← Configuração centralizada
+└─────────────────────────────────┘
+```
+
+**Regra de ouro:** cada camada só conhece a de baixo. A Interface chama o Serviço, o Serviço usa Modelos, e ninguém depende da Interface.
+
+---
+
+## Passo 1: Criar a Estrutura de Pastas
+
+No terminal, crie a estrutura profissional do projeto:
 
 ```bash
-# Crie a pasta principal do projeto
 mkdir n7-portaria-ai
 cd n7-portaria-ai
 
-# Crie as subpastas principais
-mkdir src
-mkdir tests
-mkdir docs
-mkdir aulas
+# Estrutura em camadas
+mkdir -p app/models app/services app/routes
+mkdir -p database tests docs aulas
+
+# Arquivos de inicialização de pacote Python
+touch app/__init__.py
+touch app/models/__init__.py
+touch app/services/__init__.py
+touch app/routes/__init__.py
 ```
 
-**O que você criou:**
-- `src/` - Onde o código principal do seu sistema vai ficar
-- `tests/` - Onde os testes automáticos vão ficar
-- `docs/` - Documentação do projeto
-- `aulas/` - Materiais das aulas
+**Por que `__init__.py`?**
+Esse arquivo transforma uma pasta em um **pacote Python**. Sem ele, o Python não consegue importar módulos de dentro da pasta. Pode ser vazio por enquanto — o importante é que exista.
 
-**Seu projeto deve parecer assim agora:**
+**Seu projeto deve ficar assim:**
 ```
 n7-portaria-ai/
-├── src/
+├── app/
+│   ├── __init__.py
+│   ├── models/
+│   │   └── __init__.py
+│   ├── services/
+│   │   └── __init__.py
+│   └── routes/
+│       └── __init__.py
+├── database/
 ├── tests/
 ├── docs/
 └── aulas/
@@ -47,298 +73,241 @@ n7-portaria-ai/
 
 ---
 
-## Passo 2: Criar o Arquivo requirements.txt
+## Passo 2: Configurar o Projeto Python
 
-Este arquivo é como uma "lista de compras" das bibliotecas que seu projeto usa.
-
-### Faça isto:
+### 2.1 Criar o ambiente virtual
 
 ```bash
-# No terminal, dentro da pasta n7-portaria-ai, crie o arquivo:
-echo "Flask==2.3.0" > requirements.txt
-```
-
-Ou manualmente:
-1. Abra seu editor de texto
-2. Crie um arquivo chamado `requirements.txt`
-3. Escreva isto dentro:
-
-```
-Flask==2.3.0
-```
-
-4. Salve na pasta raiz de `n7-portaria-ai/`
-
-**Por que Flask?**
-Flask é uma biblioteca para criar aplicações web. Vamos usá-la em aulas futuras para criar a interface do nosso sistema de portaria.
-
----
-
-## Passo 3: Criar e Ativar o Ambiente Virtual
-
-O ambiente virtual é como criar um "cantinho só seu" para as bibliotecas do seu projeto.
-
-### Windows:
-
-```bash
-# Criar o ambiente virtual
+# Windows
 python -m venv venv
-
-# Ativar o ambiente virtual
 venv\Scripts\activate
-```
 
-### Mac/Linux:
-
-```bash
-# Criar o ambiente virtual
+# Mac/Linux
 python3 -m venv venv
-
-# Ativar o ambiente virtual
 source venv/bin/activate
 ```
 
-**Como saber se funcionou?**
+Você deve ver `(venv)` no início do terminal.
 
-Veja o terminal. Se ativar bem, você verá algo assim:
+### 2.2 Criar requirements.txt
+
+Crie o arquivo `requirements.txt` na raiz:
+
 ```
-(venv) C:\Users\seu-nome\n7-portaria-ai>
+Flask==3.1.0
+customtkinter==5.2.2
 ```
 
-Aquele `(venv)` no começo significa "parabéns, o ambiente está ativo!"
-
-### Instalar as Dependências
-
-Agora que o ambiente está ativo, instale o Flask:
-
+Instale:
 ```bash
 pip install -r requirements.txt
 ```
 
-**O que aconteceu:** pip baixou a biblioteca Flask de acordo com o que está listado em requirements.txt e instalou no seu ambiente virtual.
+### 2.3 Criar .gitignore
 
----
-
-## Passo 4: Copiar o Arquivo hello_portaria.py
-
-Este é o seu primeiro script Python!
-
-### Faça isto:
-
-1. Abra a pasta `exercicio` neste repositório
-2. Copie o arquivo `hello_portaria.py`
-3. Cole dentro da pasta `src/` do seu projeto
-
-**Seu projeto deve parecer assim agora:**
-```
-n7-portaria-ai/
-├── src/
-│   └── hello_portaria.py  ← Seu arquivo Python
-├── tests/
-├── docs/
-├── aulas/
-├── venv/
-├── requirements.txt
-```
-
----
-
-## Passo 5: Completar os TODOs do Script
-
-Abra o arquivo `hello_portaria.py` no seu editor.
-
-Você verá comentários com **TODO** que indicam lugares onde você precisa escrever código.
-
-### TODOs a Completar:
-
-1. **TODO 1:** Na função `obter_nome_portaria()` - Pergunte ao usuário o nome da portaria
-2. **TODO 2:** Na função `obter_nome_portaria()` - Retorne o nome digitado
-3. **TODO 3:** Na função `main()` - Chame a função `obter_nome_portaria()` e guarde o resultado em uma variável
-4. **TODO 4:** Na função `main()` - Chame a função `exibir_mensagem_boas_vindas()` com o nome da portaria
-
-**Dica:** Observe o código já escrito. Procure por comentários em português que explicam o que fazer.
-
-**Não sabe como fazer?** Volte ao README.md e procure no material complementar ou pergunte!
-
----
-
-## Passo 6: Executar Seu Script
-
-Vamos ver seu código funcionando!
-
-### No terminal (com o ambiente virtual ativo):
-
-```bash
-python src/hello_portaria.py
-```
-
-**Esperado:** O script deve perguntar o nome da portaria, você digita, e recebe uma mensagem formatada.
-
-**Exemplo:**
-```
-Bem-vindo ao Sistema de Portaria Inteligente!
-Digite o nome da sua portaria: Portaria Central
-=========================================
-Olá Portaria Central!
-Você está usando o Sistema de Portaria v1.0.0
-Vamos gerenciar seu condominio com inteligência!
-=========================================
-```
-
-**Se der erro:** Não é problema! Erros são normais.
-- Leia a mensagem de erro com calma
-- Procure pela linha do erro
-- Verifique se o código está igual aos TODOs preenchidos
-- Se ainda não conseguir, volte para o passo anterior
-
----
-
-## Passo 7: Inicializar o Git
-
-Git é para controlar as versões do seu código.
-
-### Faça isto no terminal:
-
-```bash
-# Dentro de n7-portaria-ai, inicialize o Git
-git init
-
-# Configure seu nome e email (de uma vez por todas)
-git config --global user.name "Seu Nome"
-git config --global user.email "seu.email@exemplo.com"
-```
-
----
-
-## Passo 8: Criar o Arquivo .gitignore
-
-Este arquivo diz ao Git quais pastas não controlar (como a pasta `venv` que é muita grande).
-
-### Faça isto:
-
-1. Na raiz de `n7-portaria-ai/`, crie um arquivo chamado `.gitignore`
-2. Escreva isto dentro:
+Crie `.gitignore` na raiz:
 
 ```
+# Python
 venv/
 __pycache__/
 *.pyc
+*.pyo
 .env
+
+# IDE
+.vscode/
+.idea/
+
+# Sistema
 .DS_Store
+Thumbs.db
+
+# Banco de dados local
+*.db
 ```
 
-**O que isto faz:** Git vai ignorar a pasta venv (que é pesada) e outros arquivos temporários.
+### 2.4 Criar config.py (opcional, desafio bônus)
+
+Na raiz, crie `config.py`:
+
+```python
+"""Configuração centralizada do projeto."""
+
+APP_NAME = "n7-portaria-ai"
+APP_VERSION = "0.1.0"
+DATABASE_NAME = "portaria.db"
+MAX_MORADORES = 500
+DEBUG_MODE = True
+```
+
+Este é o conceito que você vai praticar no **TODO 1** do exercício.
 
 ---
 
-## Passo 9: Seu Primeiro Commit
+## Passo 3: Copiar e Abrir o Exercício
 
-Agora vamos "tirar uma foto" do estado atual do seu projeto no Git.
+1. Copie o arquivo `hello_portaria.py` para a pasta `app/` do seu projeto
+2. Abra no VS Code
 
-### Faça isto no terminal:
+---
+
+## Passo 4: Completar os TODOs
+
+O exercício tem **7 TODOs** organizados por camada. Cada um ensina um conceito de arquitetura:
+
+### Camada de Configuração
+| TODO | Conceito | O que fazer |
+|------|----------|-------------|
+| **1** | Constantes centralizadas | Definir DATABASE_NAME, MAX_MORADORES, DEBUG_MODE |
+
+### Camada de Modelo
+| TODO | Conceito | O que fazer |
+|------|----------|-------------|
+| **2** | Encapsulamento | Criar método `endereco_completo()` na classe Morador |
+| **3** | Domain Modeling | Criar a classe Visitante com @dataclass |
+
+### Camada de Serviço
+| TODO | Conceito | O que fazer |
+|------|----------|-------------|
+| **4** | Lógica no Service | Criar método `listar_moradores()` com filtro por bloco |
+
+### Camada de Interface
+| TODO | Conceito | O que fazer |
+|------|----------|-------------|
+| **5** | Separação de responsabilidades | Criar função de cadastro interativo |
+| **6** | Usar o service, não manipular dados | Chamar listar_moradores() e exibir resultado |
+| **7** | Orquestração na main() | Integrar tudo no fluxo principal |
+
+---
+
+## Passo 5: Executar e Testar
 
 ```bash
-# Ver o status do Git (arquivos que mudaram)
+python app/hello_portaria.py
+```
+
+**Saída esperada (após completar todos os TODOs):**
+
+```
+==================================================
+  n7-portaria-ai v0.1.0
+  Sistema de Portaria Inteligente para Condomínios
+==================================================
+
+📋 Cadastrando moradores de exemplo...
+   → Maria Silva: Apto 101 - Bloco A
+   → João Santos: Apto 202 - Bloco B
+   → Ana Oliveira: Apto 303
+
+Moradores do Bloco A: 1
+Total de moradores: 3
+
+👤 Cadastre um novo morador:
+Nome do morador: Pedro Lima
+Apartamento: 404
+Bloco (Enter para pular): A
+✅ Morador cadastrado: Apto 404 - Bloco A
+
+📊 Resumo do Sistema:
+   Moradores cadastrados: 4
+   Banco de dados: portaria.db
+   Modo debug: Ativado
+
+==================================================
+  Ademilson, cada camada do código tem seu lugar.
+  Assim como cada pessoa no condomínio. 🏢
+==================================================
+```
+
+---
+
+## Passo 6: Git — Primeiro Commit Profissional
+
+```bash
+git init
+
+git config user.name "Seu Nome"
+git config user.email "seu.email@exemplo.com"
+
+# Verifique o status (o .gitignore deve excluir venv/)
 git status
 
-# Adicionar todos os arquivos para o commit
+# Adicione os arquivos
 git add .
 
-# Criar o commit com uma mensagem
-git commit -m "Aula 01: Estrutura inicial do projeto e primeiro script Python"
+# Commit com mensagem no padrão profissional
+git commit -m "feat: estrutura inicial do projeto com arquitetura em camadas"
 
-# Ver o histórico de commits
-git log
-```
-
-**O que você verá:**
-
-Após `git status`, verá algo assim:
-```
-On branch master
-Changes not staged for commit:
-  new file:   requirements.txt
-  new file:   src/hello_portaria.py
-  new file:   .gitignore
+# Verifique o histórico
+git log --oneline
 ```
 
-Após `git commit`, verá:
-```
-[master (root-commit) abc1234] Aula 01: Estrutura inicial...
- 3 files changed, 45 insertions(+)
- create mode 100644 requirements.txt
- create mode 100644 src/hello_portaria.py
- create mode 100644 .gitignore
-```
+**Padrão de commit:**
+- `feat:` = nova funcionalidade
+- `fix:` = correção de bug
+- `docs:` = documentação
+- `refactor:` = reestruturação sem mudar comportamento
 
 ---
 
-## Passo 10 (Opcional): Enviar para o GitHub
+## Passo 7 (Bônus): Desafio Extra
 
-Se você tiver uma conta no GitHub:
+Se terminou tudo e quer ir além:
 
-1. Crie um repositório chamado `n7-portaria-ai`
-2. No terminal, adicione o repositório remoto:
+1. **Adicione validação no modelo Visitante:** documento deve ter exatamente 11 dígitos (CPF) ou entre 5-15 caracteres (RG). Use `__post_init__` do dataclass.
 
-```bash
-# Troque seu-usuario e seu-repositorio pelos seus dados
-git remote add origin https://github.com/seu-usuario/n7-portaria-ai.git
+2. **Crie um método `registrar_visita` no PortariaService** que recebe um Visitante e um Morador e imprime: "Visitante {nome} visitando {morador} em {endereco_completo}"
 
-# Envie seu código para GitHub
-git push -u origin master
-```
+3. **Separe em arquivos reais:** mova cada camada para seu arquivo dentro de `app/`:
+   - `app/models/morador.py`
+   - `app/models/visitante.py`
+   - `app/services/portaria_service.py`
 
 ---
 
-## Checklist - Você Completou?
+## Checklist de Aprendizado
 
-Verifique se fez tudo:
+Ao final desta aula, você deve entender:
 
-- [ ] Criei a pasta `n7-portaria-ai` com subpastas
-- [ ] Criei o arquivo `requirements.txt` com Flask
-- [ ] Criei um ambiente virtual com `python -m venv venv`
-- [ ] Ativei o ambiente virtual (vi o `(venv)` no terminal)
-- [ ] Instalei o Flask com `pip install -r requirements.txt`
-- [ ] Copiei `hello_portaria.py` para `src/`
-- [ ] Completei todos os TODOs no script Python
-- [ ] Executei o script e funcionou!
-- [ ] Criei `.gitignore`
-- [ ] Fiz `git init` e meu primeiro `git commit`
-- [ ] (Opcional) Enviei para GitHub
+- [ ] Por que separamos código em camadas (Model / Service / Interface)
+- [ ] O que é `@dataclass` e por que evita código repetitivo
+- [ ] O que é `Optional[str]` (type hints)
+- [ ] Para que serve `__init__.py` em pastas Python
+- [ ] O que é injeção de dependência (receber service como parâmetro)
+- [ ] Diferença entre constantes (`UPPER_CASE`) e variáveis (`snake_case`)
+- [ ] Por que a interface não deve manipular dados diretamente
+- [ ] Como fazer um commit profissional com mensagem descritiva
 
 ---
 
 ## Se Algo Deu Errado...
 
-**Erro ao ativar ambiente virtual?**
-- Certifique-se de estar na pasta correta
-- Use exatamente o comando para seu sistema operacional
+**Erro `NameError: name 'DATABASE_NAME' is not defined`**
+→ Você esqueceu de completar o TODO 1. Defina as constantes.
 
-**Erro ao instalar Flask?**
-- Verifique se o ambiente virtual está ativo (procure por `(venv)` no terminal)
-- Tente novamente: `pip install Flask`
+**Erro `AttributeError: 'Morador' object has no attribute 'endereco_completo'`**
+→ Você esqueceu de completar o TODO 2. Crie o método na classe.
 
-**Python não encontrado?**
-- Certifique-se que Python está instalado
-- No terminal, digite: `python --version`
+**Erro de indentação**
+→ Em Python, indentação importa! Use 4 espaços (nunca tab). No VS Code, configure: "editor.tabSize": 4.
 
-**Script não executa?**
-- Verifique se preencheu todos os TODOs
-- Verifique a indentação (espaços em branco no Python são importantes!)
-- Procure pela linha exata do erro na mensagem
+**`@dataclass` não funciona**
+→ Certifique-se de ter `from dataclasses import dataclass` no topo do arquivo.
 
 ---
 
 ## Parabéns!
 
-Você acabou de:
-✅ Criar uma estrutura profissional de projeto
-✅ Configurar um ambiente virtual Python
-✅ Escrever seu primeiro script Python
-✅ Fazer seu primeiro commit no Git
+Você aprendeu a pensar como um **arquiteto de software**:
 
-Você está no caminho certo! Descanse um pouco, e na próxima aula vamos aprender muito mais.
+✅ Configuração centralizada (não espalhe valores mágicos)
+✅ Modelos isolados (representam dados, nada mais)
+✅ Serviços com lógica de negócio (validação, filtros, regras)
+✅ Interface separada (print/input podem mudar sem quebrar o resto)
+
+Na **Aula 02**, vamos conectar essa estrutura ao **SQLite** — o banco de dados do nosso sistema. Os modelos que você criou aqui serão as tabelas do banco!
 
 ---
 
-**Dúvidas?** Anotaremos e resolvemos juntos!
+**Dúvidas?** Anote e resolveremos juntos na próxima sessão.

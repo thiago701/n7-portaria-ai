@@ -1,24 +1,26 @@
-# Aula 01 — Kickoff: Montando Nosso Canteiro de Obras Digital
+# Aula 01 — Montando Nosso Canteiro de Obras Digital
 
 **Data:** 03 de Abril de 2026
 **Duração:** 2 horas
-**Instrutor:** n7 Academy
+**Instrutor:** Thiago (n7 Tech)
 **Aluno:** Ademilson
-**Projeto:** Sistema Inteligente de Gerenciamento de Portaria
+**Projeto:** n7-portaria-ai — Sistema de Portaria Inteligente
 
 ---
 
 ## Objetivos da Aula
 
-Nesta primeira aula, vamos preparar tudo o que você precisa para começar sua jornada como desenvolvedor! Você vai entender como um projeto de software é organizado e terá as ferramentas certas funcionando em seu computador.
+Nesta aula inaugural, vamos configurar o projeto como profissionais fazem. Como o Ademilson já tem noções de Python, pulamos o "Hello World" e vamos direto ao que importa: **como organizar software de verdade**.
 
 Ao final desta aula, você será capaz de:
 
-✅ Entender como um projeto de software é estruturado
-✅ Criar uma pasta de projeto bem organizada
-✅ Configurar um ambiente virtual Python
-✅ Escrever seu primeiro script Python
-✅ Usar Git para controlar as versões do seu código
+✅ Estruturar um projeto Python em camadas (Config → Model → Service → Interface)
+✅ Entender por que separação de responsabilidades importa
+✅ Usar `@dataclass` para criar modelos limpos
+✅ Centralizar configurações em constantes
+✅ Criar um serviço com validação e filtros
+✅ Configurar venv, requirements.txt e .gitignore
+✅ Fazer commits profissionais com mensagens descritivas
 
 ---
 
@@ -26,169 +28,119 @@ Ao final desta aula, você será capaz de:
 
 ### Parte Teórica (30 minutos)
 
-Nesta primeira parte, vamos aprender os conceitos fundamentais:
+1. **O Projeto n7-portaria-ai** (5 min)
+   - O que vamos construir ao longo de 25 aulas
+   - Os 6 módulos: Moradores, Visitantes, Acesso, Notificações, IA, Dashboard
 
-1. **O que é um Projeto de Software?** (8 min)
-   - Um projeto é como uma construção: precisa de planejamento, estrutura e organização
-   - Nosso projeto: Sistema de Portaria Inteligente para Condomínios
-   - Por que organizar bem desde o início?
+2. **Analogia: Software = Construir uma Casa** (5 min)
+   - Fundação → Python | Paredes → Código | Fiação → Banco | Pintura → Interface
 
-2. **Estrutura de Pastas e Arquivos** (8 min)
-   - Como organizar as pastas do seu projeto
-   - Nomes de pasta e arquivo (boas práticas)
-   - Arquivo requirements.txt: o "cardápio" de ingredientes do seu projeto
+3. **Arquitetura em Camadas** (10 min)
+   - Config: configurações centralizadas
+   - Model: @dataclass, type hints, encapsulamento
+   - Service: lógica de negócio, validação, filtros
+   - Interface: a "casca" que pode mudar (terminal → GUI → web)
+   - Regra: cada camada só conhece a de baixo
 
-3. **Ambientes Virtuais Python** (7 min)
-   - O que é um ambiente virtual?
-   - Por que não usar apenas o Python do sistema?
-   - Como criar e ativar um ambiente virtual (venv)
+4. **Ferramentas e Ambiente** (5 min)
+   - VS Code, Python, venv, Git
+   - `__init__.py`: o que transforma pasta em pacote
 
-4. **Introdução ao Git** (7 min)
-   - Controle de versão: por que é importante?
-   - Git básico: add, commit, push
-   - Seu histórico de trabalho no GitHub
+5. **Clean Code na Prática** (5 min)
+   - Constantes UPPER_SNAKE_CASE vs variáveis snake_case
+   - Docstrings: documentar para o "eu do futuro"
+   - Type hints: dizer ao Python (e a nós) o tipo dos dados
 
 ---
 
 ### Parte Prática (1 hora e 30 minutos)
 
-Agora é a sua vez de "colocar a mão na massa"! Vamos fazer tudo passo a passo:
-
 1. **Criar a Estrutura do Projeto** (15 min)
-   - Montar a pasta raiz e subpastas
-   - Criar arquivo requirements.txt com nossas primeiras dependências
+   - Pastas: app/models, app/services, app/routes
+   - Arquivos `__init__.py` em cada pacote
+   - requirements.txt + .gitignore
 
-2. **Configurar o Ambiente Virtual** (15 min)
-   - Criar o ambiente virtual
-   - Ativar o ambiente (você vai ver mudanças no terminal)
-   - Instalar as dependências
+2. **Configurar o Ambiente Virtual** (10 min)
+   - Criar e ativar venv
+   - Instalar dependências
 
-3. **Seu Primeiro Script Python** (40 min)
-   - Abrir o arquivo `hello_portaria.py`
-   - Completar os TODOs com seu próprio código
-   - Executar o script e ver o resultado
-   - Entender o que cada linha faz
+3. **Exercício: hello_portaria.py — 7 TODOs** (45 min)
+   - TODO 1: Constantes de configuração
+   - TODO 2: Método no modelo (encapsulamento)
+   - TODO 3: Criar modelo Visitante (@dataclass)
+   - TODO 4: Filtro por bloco no serviço
+   - TODO 5: Função de cadastro interativo (interface)
+   - TODO 6: Usar o serviço para listar moradores
+   - TODO 7: Orquestrar tudo na main()
 
-4. **Seu Primeiro Commit no Git** (20 min)
-   - Adicionar arquivos com `git add`
-   - Criar um commit com mensagem significativa
-   - Fazer push para o GitHub
-   - Celebrar sua primeira entrega!
+4. **Git: Primeiro Commit** (20 min)
+   - `git init` → `git add .` → `git commit -m "feat: ..."`
+   - Padrão de mensagem: feat, fix, docs, refactor
+   - Push para GitHub
 
 ---
 
-## Tópicos Teóricos Abordados
+## Conceitos Arquiteturais Abordados
 
-### 1. Projeto de Software - O Que É?
-
-Um projeto de software é como uma construção:
-- **Fundação:** planejamento e estrutura
-- **Estrutura:** pastas e arquivos bem organizados
-- **Materiais:** bibliotecas Python que usamos
-- **Qualidade:** código limpo e documentado
-
-Nosso projeto: **Sistema de Portaria Inteligente**
-- Vai ajudar condomínios a gerenciar acesso de visitantes
-- Vamos construir passo a passo
-- Começamos com o básico, depois evoluímos
-
-### 2. Estrutura de Pastas
-
-Uma boa estrutura de projeto se parece assim:
-
+### Separação em Camadas
 ```
-n7-portaria-ai/
-├── README.md              # Documentação do projeto
-├── requirements.txt       # Lista de bibliotecas
-├── .gitignore             # Arquivos a não rastrear
-├── venv/                  # Ambiente virtual
-├── src/                   # Código principal
-│   └── main.py
-├── tests/                 # Testes do código
-├── docs/                  # Documentação adicional
-└── aulas/                 # Materiais didáticos
+Interface (print/input)  →  Service (regras)  →  Model (dados)  →  Config (constantes)
+```
+Cada camada tem uma responsabilidade única. Se trocarmos terminal por GUI, só a Interface muda.
+
+### @dataclass
+Substitui classes com `__init__` repetitivo. Em vez de:
+```python
+class Morador:
+    def __init__(self, nome, apto):
+        self.nome = nome
+        self.apto = apto
+```
+Escrevemos:
+```python
+@dataclass
+class Morador:
+    nome: str
+    apto: str
 ```
 
-### 3. Ambientes Virtuais Python
+### Injeção de Dependência (simplificada)
+Funções recebem o service como parâmetro em vez de criá-lo internamente. Isso facilita testes e troca de implementação.
 
-**Por que precisamos?**
-
-Imagine que você tem vários projetos:
-- Projeto A precisa de Flask versão 1.0
-- Projeto B precisa de Flask versão 2.0
-
-Se instalar tudo no Python geral, haverá conflito!
-
-**A solução:** Ambiente virtual
-- É como uma "bolha" para cada projeto
-- Cada projeto tem suas próprias bibliotecas
-- Sem conflitos, tudo funciona bem
-
-### 4. Git - Controle de Versão
-
-Git é como um "sistema de backup inteligente":
-- Salva cada mudança no seu código
-- Você pode voltar para versões anteriores
-- Permite trabalhar em equipe sem perder trabalho
-
-**Comandos básicos:**
-- `git add` → Preparar mudanças para salvar
-- `git commit` → Salvar com uma mensagem
-- `git push` → Enviar para GitHub
+### Type Hints
+`def cadastrar(nome: str) -> Morador` — deixa claro o que entra e o que sai da função.
 
 ---
 
 ## Checklist de Aprendizado
 
-Ao final desta aula, você deve ser capaz de fazer tudo isto sem copiar:
-
-- [ ] Explicar o que é um projeto de software
-- [ ] Criar uma estrutura de pastas bem organizada
-- [ ] Criar um ambiente virtual Python
-- [ ] Ativar um ambiente virtual
-- [ ] Instalar bibliotecas em um ambiente virtual
-- [ ] Criar um arquivo requirements.txt
-- [ ] Escrever um script Python simples
-- [ ] Executar um script Python no terminal
-- [ ] Entender variáveis e funções básicas
-- [ ] Usar `git add` para preparar mudanças
-- [ ] Usar `git commit` com uma mensagem significativa
-- [ ] Fazer `git push` para enviar seu código
+- [ ] Sei explicar por que separamos código em camadas
+- [ ] Entendo o que @dataclass faz e por que é útil
+- [ ] Sei a diferença entre Model, Service e Interface
+- [ ] Entendo para que serve `__init__.py`
+- [ ] Sei fazer um commit com mensagem profissional
+- [ ] Configurei venv e instalei dependências
+- [ ] Completei todos os 7 TODOs do exercício
 
 ---
 
 ## Recursos Utilizados
 
-- **Linguagem:** Python 3.11+
-- **Gerenciador de pacotes:** pip
-- **Controle de versão:** Git + GitHub
-- **Framework Web:** Flask (instalado, não usado ainda)
-
----
-
-## Notas Importantes
-
-1. **Tire seu tempo:** Não tenha pressa. A programação é como aprender um idioma — é preciso prática.
-
-2. **Faça tudo junto:** Não apenas assista, faça você mesmo. Seus dedos precisam aprender também!
-
-3. **Se algo der errado:** É normal! Erros são oportunidades de aprendizado. Anotaremos o erro e procuraremos a solução juntos.
-
-4. **Pergunte sempre:** Não existe pergunta "boba". Se tem dúvida, nós resolvemos.
-
-5. **Seu ritmo:** Você decide o ritmo. Se precisar de mais tempo, faremos mais tempo.
+- **Linguagem:** Python 3.12+
+- **Conceitos:** Dataclasses, Type Hints, Separação de Camadas
+- **Ferramentas:** venv, pip, Git, VS Code
+- **Bibliotecas:** (instaladas, usadas a partir da Aula 04+): Flask, CustomTkinter
 
 ---
 
 ## Próximos Passos
 
-Após esta aula, você estará pronto para:
-- **Aula 02:** Funções e módulos Python
-- **Aula 03:** Estrutura de dados (listas, dicionários)
-- **Aula 04:** Seu primeiro servidor web com Flask
+- **Aula 02 (10/04):** Banco de Dados com SQLite — os modelos que criamos aqui viram tabelas!
+- **Aula 03 (17/04):** CRUD Completo — cadastrar, listar, editar e excluir moradores
+- **Aula 04 (24/04):** API REST com Flask — o serviço vira endpoints HTTP
 
 ---
 
-**Vamos começar! 🚀**
+**Vamos começar!**
 
-Bemvindo ao mundo da programação, Ademilson. Você vai se surpreender com o que conseguirá fazer!
+Ademilson, você já sabe Python. Agora vai aprender a **pensar como arquiteto de software**. Cada decisão que tomamos hoje vai facilitar nossa vida nas próximas 24 aulas.
