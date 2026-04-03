@@ -11,7 +11,7 @@
 O **n7-portaria-ai** é um sistema de portaria inteligente para condomínios residenciais, combinando controle de acesso com assistência por Inteligência Artificial. O projeto serve dois objetivos simultâneos:
 
 1. **Produto Comercial** — Entregar uma solução funcional e escalável de gerenciamento de portaria para condomínios, com potencial de comercialização pela Neural Tech.
-2. **Projeto Pedagógico** — Servir como veículo de aprendizado de programação para o aluno Ademilson (70 anos), unindo terapia cognitiva, motivação por propósito e desenvolvimento de habilidades técnicas reais.
+2. **Projeto Pedagógico** — Servir como veículo de aprendizado de programação para o aluno Ademilson (71 anos), unindo terapia cognitiva, motivação por propósito e desenvolvimento de habilidades técnicas reais.
 
 ---
 
@@ -39,7 +39,7 @@ Condomínios residenciais de pequeno e médio porte enfrentam desafios recorrent
 
 | Perfil | Descrição |
 |--------|-----------|
-| **Porteiro** | Operador principal do sistema. Registra entradas/saídas, consulta moradores, usa IA como assistente. |
+| **Porteiro** | Operador principal do sistema. Registra entradas/saídas, consulta moradores, usa IA como assistente. Porém, há unidades que não tem esse operador, e o nosso aplicativo também tem essa visão. |
 | **Morador** | Recebe notificações de visitas, autoriza acessos remotamente, visualiza histórico. |
 | **Síndico/Administrador** | Acessa relatórios, gerencia moradores, configura regras do condomínio. |
 | **Visitante** | Pessoa registrada na entrada. Não acessa o sistema diretamente. |
@@ -52,7 +52,9 @@ Condomínios residenciais de pequeno e médio porte enfrentam desafios recorrent
 - Cadastro completo (nome, apartamento, telefone, e-mail)
 - Listagem, busca e filtros
 - Edição e desativação de moradores
-- Foto do morador (opcional, fase futura)
+- Foto do morador (será renovada de 2 em 2 anos)
+- Biometria Digital (será renovada de 2 em 2 anos)
+- Tipo de Morador (inquelino e/ou proprietário)
 
 ### Módulo 2 — Registro de Visitantes
 - Cadastro do visitante na entrada (nome, documento, motivo, morador visitado)
