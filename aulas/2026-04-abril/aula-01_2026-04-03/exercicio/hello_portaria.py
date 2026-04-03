@@ -51,7 +51,8 @@ APP_DESCRIPTION: str = "Sistema de Portaria Inteligente para Condomínios"
 #
 # Escreva as 3 linhas abaixo:
 
-
+DATABASE_NAME = "portaria.db"
+MAX_MORADORES = 500
 
 
 # ============================================
