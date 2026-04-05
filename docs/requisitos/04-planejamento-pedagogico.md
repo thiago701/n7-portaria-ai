@@ -44,10 +44,10 @@ O aluno Ademilson já possui conhecimento em:
 
 | # | Data | Tema | Tecnologias |
 |---|------|------|-------------|
-| 01 | 03/04 (sex) | Kickoff: Estrutura do Projeto + Ambiente | Python, venv, Git, VS Code |
-| 02 | 10/04 (qui) | Banco de Dados: Criando Tabelas com SQL | SQLite, SQL DDL |
-| 03 | 17/04 (qui) | CRUD Completo: Moradores em Python | Python + sqlite3, funções |
-| 04 | 24/04 (qui) | API REST: Primeira Rota com Flask | Flask, HTTP, JSON |
+| 01 | 03/04 (qui) | Kickoff: Estrutura do Projeto + Ambiente | Python, venv, Git, VS Code |
+| 02 | 09/04 (qua) | Banco de Dados: Schema Completo com SQL | SQLite, SQL DDL, todas as tabelas (moradores, visitantes, acessos) |
+| 03 | 16/04 (qua) | CRUD Completo: Moradores em Python | Python + sqlite3, funções, integração com DB criado |
+| 04 | 23/04 (qua) | API REST: Primeira Rota com Flask | Flask, HTTP, JSON |
 | 05 | 30/04 (qua) | Interface Gráfica: GUI com CustomTkinter | CustomTkinter, widgets, eventos |
 
 ### Fase 2 — Visitantes e Acesso (Maio 2026) — 4 aulas

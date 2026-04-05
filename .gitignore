@@ -209,3 +209,31 @@ __marimo__/
 # Arquivos temporários de editores de escritório
 .~lock.*
 ~$*
+
+# ============================================
+# AULAS FUTURAS (ainda não liberadas para o aluno)
+# Manter apenas local até a data da aula
+# ============================================
+aulas/2026-04-abril/aula-03_2026-04-16/
+aulas/2026-04-abril/aula-04_2026-04-23/
+aulas/2026-04-abril/aula-05_2026-04-30/
+
+# Scripts de geração de slides (auxiliares)
+**/gerar-apresentacao.js
+
+# Bancos de dados locais
+*.db
+*.sqlite
+
+# Roadmap interno (planejamento do mentor)
+docs/roadmap/
+
+# Contexto interno do mentor (Claude/AI)
+.claude/
+
+# ============================================
+# PASTA LOCAL — nunca versionar
+# Comunicados, e-mails HTML, rascunhos,
+# arquivos pessoais e materiais internos
+# ============================================
+_local/

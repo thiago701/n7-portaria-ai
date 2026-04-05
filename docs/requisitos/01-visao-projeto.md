@@ -49,7 +49,7 @@ Condomínios residenciais de pequeno e médio porte enfrentam desafios recorrent
 ## 5. Escopo Funcional (Módulos)
 
 ### Módulo 1 — Cadastro de Moradores
-- Cadastro completo (nome, apartamento, telefone, e-mail)
+- Cadastro completo (nome, numero_residencia, telefone, e-mail)
 - Listagem, busca e filtros
 - Edição e desativação de moradores
 - Foto do morador (será renovada de 2 em 2 anos)
@@ -191,11 +191,4 @@ Sem excesso de interfaces ou abstrações. O isolamento acontece pela organizaç
 
 | Risco | Probabilidade | Impacto | Mitigação |
 |-------|--------------|---------|-----------|
-| Complexidade técnica frustra o aluno | Média | Alto | Fracionar em tarefas pequenas; celebrar cada conquista |
-| Ritmo lento de desenvolvimento | Alta | Médio | IA acelera partes mecânicas; foco no que ensina |
-| Desistência por dificuldade | Baixa | Alto | Terapia pelo prazer; projetos tangíveis que motivam |
-| Mudança de requisitos | Média | Baixo | Documentação viva; arquitetura flexível |
-
----
-
-*Documento aprovado em 03/04/2026. Revisões serão registradas no Git.*
+| Complexidade técnica frustra o aluno | Média | Alto | Fracionar em tarefas pequenas; ce

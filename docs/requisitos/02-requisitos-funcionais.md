@@ -9,9 +9,9 @@
 
 | ID | Requisito | Prioridade | Aula |
 |----|-----------|------------|------|
-| RF-001 | O sistema deve permitir cadastrar um morador com: nome completo, CPF, apartamento, bloco, telefone e e-mail | P1 | 03 |
+| RF-001 | O sistema deve permitir cadastrar um morador com: nome completo, CPF, numero_residencia, bloco, telefone, e-mail, tipo de morador (proprietário/inquilino), foto (renovada a cada 2 anos) e biometria digital (renovada a cada 2 anos) | P1 | 03 |
 | RF-002 | O sistema deve listar todos os moradores cadastrados com paginação | P1 | 03 |
-| RF-003 | O sistema deve permitir buscar morador por nome ou apartamento | P1 | 04 |
+| RF-003 | O sistema deve permitir buscar morador por nome ou numero_residencia | P1 | 04 |
 | RF-004 | O sistema deve permitir editar dados de um morador | P1 | 04 |
 | RF-005 | O sistema deve permitir desativar (soft delete) um morador | P2 | 04 |
 | RF-006 | O sistema deve validar CPF antes de salvar | P2 | 05 |
@@ -80,6 +80,18 @@
 
 ---
 
+## Módulo 7 — Gestão de Funcionários e Veículos *(v3.0 — contribuição do aluno)*
+
+| ID | Requisito | Prioridade | Aula |
+|----|-----------|------------|------|
+| RF-034 | O sistema deve permitir cadastrar funcionários com: nome, CPF, cargo, setor e login/senha (hash) | P2 | 09 |
+| RF-035 | O sistema deve diferenciar perfis: porteiro, zelador, administrador | P2 | 09 |
+| RF-036 | O sistema deve permitir cadastrar veículos vinculados a moradores, funcionários ou visitantes | P2 | 10 |
+| RF-037 | O sistema deve registrar qual funcionário efetuou cada registro de acesso | P2 | 07 |
+| RF-038 | O sistema deve registrar o veículo utilizado no acesso (quando aplicável) | P3 | 10 |
+
+---
+
 ## Regras de Negócio
 
 | ID | Regra | Módulo |
@@ -99,9 +111,9 @@
 | Aula | Data | Módulo | Requisitos Cobertos |
 |------|------|--------|---------------------|
 | 01 | 03/04 | — | Setup do projeto, ambiente, estrutura de pastas |
-| 02 | 10/04 | Mod. 1 (parcial) | Banco de dados, schema moradores (RF-001 base) |
-| 03 | 17/04 | Mod. 1 | CRUD moradores completo (RF-001, RF-002, RF-007) |
-| 04 | 24/04 | Mod. 1 | API REST + busca e edição (RF-003, RF-004, RF-005) |
+| 02 | 09/04 | Mod. 1 (base + expansão) | Banco de dados, schema completo (moradores, visitantes, acessos), RF-001 e estrutura para Mod. 2-3 |
+| 03 | 16/04 | Mod. 1 | CRUD moradores completo (RF-001, RF-002, RF-007) |
+| 04 | 23/04 | Mod. 1 | API REST + busca e edição (RF-003, RF-004, RF-005) |
 | 05 | 30/04 | Mod. 1 | Interface gráfica desktop + validações (RF-006, CustomTkinter) |
 
 ---

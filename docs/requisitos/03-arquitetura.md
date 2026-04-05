@@ -20,24 +20,35 @@ O n7-portaria-ai adota a filosofia do **Monólito Modular**: uma aplicação ún
 
 ## 2. Diagrama de Camadas
 
+A arquitetura segue o padrão **Clean Architecture** simplificado em 3 camadas:
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    APRESENTAÇÃO (Interface)                   │
-│      CustomTkinter (desktop) → HTML/CSS + Jinja2 (web)      │
+│                    INTERFACE (Presentation)                   │
+│      CustomTkinter (desktop) + Flask (web) + CLI              │
+│    interface/gui/main.py │ interface/api/ │ interface/cli/    │
 ├─────────────────────────────────────────────────────────────┤
-│                    ROTAS (Controllers)                        │
-│         Flask Blueprints — uma por módulo                    │
-│    moradores.py │ visitantes.py │ dashboard.py │ ia.py      │
+│                                                              │
+│                    CORE (Domain)                             │
+│             ┌──────────────────────────────┐                │
+│             │ models/ (Entidades)                      │    │
+│             │ Morador, Visitante, Funcionario,         │    │
+│             │ Veiculo, Acesso                          │    │
+│             └──────────────────────────────┘                │
+│             ┌──────────────────────────────┐                │
+│             │ usecase/ (Casos de Uso)      │                │
+│             │ Regras de negócio isoladas   │                │
+│             └──────────────────────────────┘                │
+│                                                              │
 ├─────────────────────────────────────────────────────────────┤
-│                    SERVIÇOS (Regras de Negócio)              │
-│    acesso_service.py │ notificacao_service.py │ ia_service  │
-├─────────────────────────────────────────────────────────────┤
-│                    MODELOS (Dados)                            │
-│    morador.py │ visitante.py │ acesso.py │ usuario.py       │
-├─────────────────────────────────────────────────────────────┤
-│                    BANCO DE DADOS                            │
-│              SQLite (dev) → PostgreSQL (prod)                │
+│                    INFRA (Infrastructure)                     │
+│          database/ (Acesso a dados, repositórios)            │
+│          biometria/ (Futuro: câmera, leitor, APIs)          │
+│             SQLite (dev) → PostgreSQL (prod)                │
 └─────────────────────────────────────────────────────────────┘
+
+Regra de Dependência: Interface → Core ← Infra
+(Interface e Infra dependem de Core, nunca o contrário)
 ```
 
 ---
@@ -49,38 +60,83 @@ Fase 1 (Desktop):                    Fase 5+ (Web):
 Usuário (GUI)                        Usuário (Browser)
     │                                    │
     ▼                                    ▼
-[CustomTkinter]  →  Captura evento   [Flask Route]  →  Recebe requisição HTTP
+[interface/gui]      [interface/api]
     │                                    │
     ▼                                    ▼
-[Service]        →  Regra de negócio [Service]      →  Regra de negócio
-    │                                    │
+[core/usecase]  →  Aplica regra  [core/usecase]  →  Aplica regra
+    │               de negócio         │               de negócio
     ▼                                    ▼
-[Model/DB]       →  Lê/grava SQLite  [Model/DB]     →  Lê/grava no banco
-    │                                    │
-    ▼                                    ▼
+[infra/database]    [infra/database]
+    │               Lê/grava em          │               Lê/grava em
+    ▼               SQLite/PostgreSQL    ▼               SQLite/PostgreSQL
 [GUI Update]     →  Atualiza tela    [Template]     →  Renderiza HTML
     │                                    │
     ▼                                    ▼
 Usuário (GUI)                        Usuário (Browser)
 ```
 
+**Princípio:** Interface chama Use Case (core), que trabalha com Modelos (core). Nunca o contrário.
+Infra implementa consultas e persiste dados conforme solicitado por core.
+
 ---
 
 ## 4. Banco de Dados — Modelo Conceitual
 
-### Tabela: moradores
+> **v8.0 (09/04/2026):** Revisão arquitetural DBA — morador N:N residências, 1 assinatura por condomínio, correlation_id SHA-256 em todas as tabelas, LGPD blob por morador.
+> **v3.0 (09/04/2026):** Tabelas `funcionarios` e `veiculos` adicionadas (contribuição do aluno Ademilson, revisada e incorporada).
+
+### Tabela: moradores *(atualizada — v8.0)*
 | Coluna | Tipo | Restrições |
 |--------|------|------------|
 | id | INTEGER | PK, autoincrement |
 | nome | TEXT | NOT NULL |
-| cpf | TEXT | UNIQUE, NOT NULL |
-| apartamento | TEXT | NOT NULL |
-| bloco | TEXT | |
+| cpf | TEXT | UNIQUE, NOT NULL, CHECK(length=11) |
 | telefone | TEXT | |
-| email | TEXT | |
-| ativo | BOOLEAN | DEFAULT TRUE |
-| criado_em | DATETIME | DEFAULT CURRENT_TIMESTAMP |
-| atualizado_em | DATETIME | DEFAULT CURRENT_TIMESTAMP |
+| dt_nascimento | DATE | Opcional |
+| email | TEXT | CHECK(LIKE '%@%.%') |
+| foto | BLOB | Foto binária do morador |
+| dt_foto_validade | DATE | Validade da foto (renovar a cada 2 anos) |
+| biometria | BLOB | Bytes brutos da biometria digital |
+| dt_biometria_validade | DATE | Validade da biometria (renovar a cada 2 anos) |
+| termos_lgpd | BLOB | Bytes do PDF dos termos aceitos (LGPD Lei 13.709/2018) |
+| dt_aceite_lgpd | DATETIME | Timestamp do aceite formal dos termos (NULL = pendente) |
+| ativo | BOOLEAN | DEFAULT 1, CHECK IN (0, 1) |
+| correlation_id | TEXT | UNIQUE NOT NULL — SHA-256 de 'moradores:{cpf}' |
+| dt_criado_em | DATETIME | DEFAULT CURRENT_TIMESTAMP |
+| dt_atualizado_em | DATETIME | DEFAULT CURRENT_TIMESTAMP |
+
+> **Campos removidos em v8.0:** `numero_residencia`, `bloco`, `quadra`, `andar`, `tipo_morador`, `tipo_moradia`, `interfone`, `observacao`, `assinatura_id` → movidos para `residencias` e `morador_residencia`.
+
+### Tabela: residencias *(nova — v8.0)*
+| Coluna | Tipo | Restrições |
+|--------|------|------------|
+| id | INTEGER | PK, autoincrement |
+| codigo_condominio | TEXT | NOT NULL — referência ao condomínio |
+| numero_residencia | TEXT | NOT NULL |
+| bloco | TEXT | NULL em condomínios horizontais |
+| quadra | TEXT | NULL em condomínios verticais |
+| andar | INTEGER | NULL em casas |
+| tipo_moradia | TEXT | DEFAULT 'apartamento', CHECK IN ('apartamento','casa','comercial','outro') |
+| interfone | TEXT | Código do interfone da unidade |
+| observacao | TEXT | |
+| ativo | BOOLEAN | DEFAULT 1, CHECK IN (0, 1) |
+| correlation_id | TEXT | UNIQUE NOT NULL — SHA-256 de 'residencias:{tipo}:{bloco}:{num}' |
+| dt_criado_em | DATETIME | DEFAULT CURRENT_TIMESTAMP |
+| dt_atualizado_em | DATETIME | DEFAULT CURRENT_TIMESTAMP |
+
+### Tabela: morador_residencia *(nova — v8.0, junction table N:N)*
+| Coluna | Tipo | Restrições |
+|--------|------|------------|
+| id | INTEGER | PK, autoincrement |
+| morador_id | INTEGER | FK → moradores.id, NOT NULL |
+| residencia_id | INTEGER | FK → residencias.id, NOT NULL |
+| tipo_morador | TEXT | DEFAULT 'proprietario', CHECK IN ('proprietario','inquilino') |
+| dt_inicio | DATE | NOT NULL DEFAULT CURRENT_DATE |
+| dt_fim | DATE | NULL = ainda ativo; CHECK(fim >= inicio) |
+| ativo | BOOLEAN | DEFAULT 1, CHECK IN (0, 1) |
+| correlation_id | TEXT | UNIQUE NOT NULL |
+| dt_criado_em | DATETIME | DEFAULT CURRENT_TIMESTAMP |
+| — | — | UNIQUE(morador_id, residencia_id, dt_inicio) |
 
 ### Tabela: visitantes
 | Coluna | Tipo | Restrições |
@@ -88,40 +144,66 @@ Usuário (GUI)                        Usuário (Browser)
 | id | INTEGER | PK, autoincrement |
 | nome | TEXT | NOT NULL |
 | documento | TEXT | NOT NULL |
-| tipo_documento | TEXT | DEFAULT 'RG' |
+| tipo_documento | TEXT | DEFAULT 'RG', CHECK IN ('RG','CNH','PASSAPORTE','OUTRO') |
 | telefone | TEXT | |
-| bloqueado | BOOLEAN | DEFAULT FALSE |
+| foto | BLOB | |
+| bloqueado | BOOLEAN | DEFAULT 0, CHECK IN (0, 1) |
 | motivo_bloqueio | TEXT | |
-| criado_em | DATETIME | DEFAULT CURRENT_TIMESTAMP |
+| dt_validade_inicio | DATE | NULL = sem restrição de início |
+| dt_validade_fim | DATE | NULL = sem restrição de fim; CHECK(fim >= inicio) |
+| dt_criado_em | DATETIME | DEFAULT CURRENT_TIMESTAMP |
 
-### Tabela: acessos
-| Coluna | Tipo | Restrições |
-|--------|------|------------|
-| id | INTEGER | PK, autoincrement |
-| visitante_id | INTEGER | FK → visitantes.id |
-| morador_id | INTEGER | FK → moradores.id |
-| motivo | TEXT | NOT NULL |
-| entrada_em | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP |
-| saida_em | DATETIME | |
-| autorizado_por | TEXT | |
-| porteiro | TEXT | |
-| observacoes | TEXT | |
-
-### Tabela: usuarios
+### Tabela: funcionarios *(nova — v3.0)*
 | Coluna | Tipo | Restrições |
 |--------|------|------------|
 | id | INTEGER | PK, autoincrement |
 | nome | TEXT | NOT NULL |
-| email | TEXT | UNIQUE |
-| senha_hash | TEXT | NOT NULL |
-| perfil | TEXT | 'porteiro', 'morador', 'admin' |
-| ativo | BOOLEAN | DEFAULT TRUE |
+| cpf | TEXT | UNIQUE, NOT NULL, CHECK(length=11) |
+| cargo | TEXT | DEFAULT 'porteiro', CHECK IN ('porteiro','zelador','administrador','outro') |
+| setor | TEXT | |
+| login | TEXT | UNIQUE, NOT NULL |
+| senha_hash | TEXT | NOT NULL, CHECK(length=64) — hash SHA-256, nunca senha em texto puro |
+| ativo | BOOLEAN | DEFAULT 1, CHECK IN (0, 1) |
+| dt_criado_em | DATETIME | DEFAULT CURRENT_TIMESTAMP |
+
+### Tabela: veiculos *(nova — v3.0)*
+| Coluna | Tipo | Restrições |
+|--------|------|------------|
+| id | INTEGER | PK, autoincrement |
+| placa | TEXT | UNIQUE, NOT NULL, CHECK(length >= 7) |
+| modelo | TEXT | |
+| cor | TEXT | |
+| morador_id | INTEGER | FK → moradores.id (nullable) |
+| funcionario_id | INTEGER | FK → funcionarios.id (nullable) |
+| visitante_id | INTEGER | FK → visitantes.id (nullable) |
+| ativo | BOOLEAN | DEFAULT 1, CHECK IN (0, 1) |
+| dt_criado_em | DATETIME | DEFAULT CURRENT_TIMESTAMP |
+
+### Tabela: acessos *(atualizada — v3.0)*
+| Coluna | Tipo | Restrições |
+|--------|------|------------|
+| id | INTEGER | PK, autoincrement (64-bit = equivalente a LONG) |
+| visitante_id | INTEGER | FK → visitantes.id, NOT NULL |
+| morador_id | INTEGER | FK → moradores.id (nullable) |
+| funcionario_id | INTEGER | FK → funcionarios.id (nullable) — porteiro que registrou |
+| veiculo_id | INTEGER | FK → veiculos.id (nullable) — se veio de carro |
+| tipo_acesso | TEXT | DEFAULT 'pedestre', CHECK IN ('pedestre','garagem','servico','emergencia') |
+| motivo | TEXT | NOT NULL |
+| dt_entrada_em | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP |
+| dt_saida_em | DATETIME | nullable — NULL = ainda dentro |
+| porteiro | TEXT | texto livre (compatibilidade) |
+| observacoes | TEXT | |
 
 ### Relacionamentos
 ```
-moradores 1 ←→ N acessos
-visitantes 1 ←→ N acessos
-usuarios → perfis de acesso ao sistema
+moradores    1 ←→ N acessos
+visitantes   1 ←→ N acessos
+funcionarios 1 ←→ N acessos  (porteiro que registrou)
+veiculos     1 ←→ N acessos  (veiculo usado no acesso)
+
+moradores    1 ←→ N veiculos
+funcionarios 1 ←→ N veiculos
+visitantes   1 ←→ N veiculos
 ```
 
 ---
@@ -155,23 +237,50 @@ usuarios → perfis de acesso ao sistema
 
 ## 6. Padrões de Código
 
+### Estrutura de Diretórios (Clean Architecture)
+
+```
+src/
+├── core/                    ← Domain Layer (regras de negócio, sem dependências externas)
+│   ├── models/             ← Entidades do domínio
+│   │   └── __init__.py     ← Morador, Visitante, Acesso, Usuario
+│   └── usecase/            ← Casos de uso (aplicação de regras)
+│       └── __init__.py     ← CadastrarMorador, RegistrarAcesso, etc
+│
+├── infra/                   ← Infrastructure Layer (detalhes técnicos)
+│   └── database/           ← Acesso a dados, repositórios
+│       ├── __init__.py
+│       └── biometria/      ← Futuro: integrações com hardware/APIs
+│           ├── camera/
+│           └── leitor/
+│
+└── interface/              ← Presentation Layer (como usuários interagem)
+    ├── gui/                ← CustomTkinter (Fase 1-4)
+    │   ├── main.py
+    │   └── morador/
+    ├── api/                ← Flask Routes (Fase 5+)
+    │   ├── __init__.py
+    │   └── blueprints/
+    └── cli/                ← Command Line Interface (opcional)
+```
+
 ### Nomenclatura
-- **Arquivos:** snake_case (`morador_service.py`)
-- **Classes:** PascalCase (`Morador`)
+- **Arquivos:** snake_case (`cadastrar_morador.py`)
+- **Classes:** PascalCase (`Morador`, `CadastrarMorador`)
 - **Funções:** snake_case (`buscar_morador()`)
 - **Variáveis:** snake_case (`nome_completo`)
 - **Constantes:** UPPER_SNAKE_CASE (`MAX_VISITANTES`)
 
 ### Estrutura de Função
 ```python
-def cadastrar_morador(nome: str, cpf: str, apartamento: str) -> dict:
+def cadastrar_morador(nome: str, cpf: str, numero_residencia: str) -> dict:
     """
     Cadastra um novo morador no sistema.
 
     Args:
         nome: Nome completo do morador
         cpf: CPF do morador (somente números)
-        apartamento: Número do apartamento
+        numero_residencia: Número do apartamento/residência
 
     Returns:
         Dicionário com dados do morador cadastrado
@@ -197,15 +306,83 @@ Exemplos de tipo: feat, fix, docs, style, refactor, test
 
 ## 7. Evolução Planejada
 
+Mantendo a estrutura **Clean Architecture** como base em todas as fases:
+
 ```
-Fase 1 (Abril)     →  Python puro + SQL puro + Flask básico + CustomTkinter (GUI)
-Fase 2 (Maio)      →  Mais Flask + Formulários avançados + Sessões
-Fase 3 (Junho)     →  IA + APIs externas + SQLAlchemy
-Fase 4 (Julho)     →  Notificações + WebSockets + Dashboard
-Fase 5 (Agosto)    →  HTML/CSS + Jinja2 (módulo web) + Testes + PostgreSQL + Deploy
-Fase 6 (Set-Out)   →  Segurança + Documentação + Pitch + Comercialização
+Fase 1 (Abril)     →  core + infra + interface/gui
+                      Python puro + SQL puro + CustomTkinter
+
+Fase 2 (Maio)      →  Expansão de core/usecase + Formulários avançados GUI
+
+Fase 3 (Junho)     →  core/usecase com IA + infra/biometria (APIs)
+
+Fase 4 (Julho)     →  core expandido + Dashboard em GUI
+                      WebSockets em infra (opcional)
+
+Fase 5 (Agosto)    →  interface/api (Flask) + interface/gui (mantém CustomTkinter)
+                      Testes para core + SQLAlchemy em infra
+                      PostgreSQL em produção
+
+Fase 6 (Set-Out)   →  Segurança (autenticação em core/usecase)
+                      Testes de integração + Deploy completo
 ```
+
+**Princípio constante:** core sempre sem dependências externas. interface e infra evoluem
+mantendo a separação clara de responsabilidades.
 
 ---
 
 *Arquitetura viva — será atualizada a cada fase do projeto.*
+
+### Tabela: config_acesso_morador *(atualizada — v8.0)*
+| Coluna | Tipo | Restrições |
+|--------|------|------------|
+| id | INTEGER | PK, autoincrement |
+| morador_id | INTEGER | FK → moradores.id, UNIQUE (1:1) |
+| fatores_requeridos | INTEGER | DEFAULT 1, CHECK IN (1, 2) |
+| permite_senha | BOOLEAN | DEFAULT 1, CHECK IN (0, 1) |
+| permite_digital | BOOLEAN | DEFAULT 1, CHECK IN (0, 1) |
+| permite_facial | BOOLEAN | DEFAULT 0, CHECK IN (0, 1) |
+| correlation_id | TEXT | UNIQUE NOT NULL — SHA-256 de 'config_acesso_morador:{morador_id}' |
+| dt_criado_em | DATETIME | DEFAULT CURRENT_TIMESTAMP |
+| dt_atualizado_em | DATETIME | DEFAULT CURRENT_TIMESTAMP |
+| — | — | CHECK(permite_senha + permite_digital + permite_facial >= 1) |
+
+### Tabela: assinatura_condominio *(revisada — v8.0)*
+> **Mudança v8.0:** De contrato por morador → contrato do CONDOMÍNIO com o serviço n7-portaria-ai. `UNIQUE(codigo_condominio)` garante 1 assinatura por condomínio. `morador_id` renomeado para `responsavel_id` (síndico que assinou).
+
+| Coluna | Tipo | Restrições |
+|--------|------|------------|
+| id | INTEGER | PK, autoincrement |
+| codigo_condominio | TEXT | **UNIQUE**, NOT NULL — 1 assinatura por condomínio |
+| nome_condominio | TEXT | NOT NULL — nome comercial do condomínio |
+| endereco | TEXT | Nullable |
+| responsavel_id | INTEGER | FK → moradores.id, Nullable — síndico responsável |
+| numero_contrato | TEXT | UNIQUE, NOT NULL |
+| contrato | BLOB | Bytes do PDF do contrato digitalizado |
+| dt_ativacao | DATE | Nullable — NULL quando status = 'pendente' |
+| dt_vigencia_inicio | DATE | NOT NULL |
+| dt_vigencia_fim | DATE | Nullable — NULL = prazo indefinido; CHECK(fim >= inicio) |
+| status | TEXT | DEFAULT 'ativo', CHECK IN ('ativo','pendente','vencido','cancelado') |
+| observacoes | TEXT | |
+| correlation_id | TEXT | UNIQUE NOT NULL — SHA-256 de 'assinatura_condominio:{codigo}:{contrato}' |
+| dt_criado_em | DATETIME | DEFAULT CURRENT_TIMESTAMP |
+| dt_atualizado_em | DATETIME | DEFAULT CURRENT_TIMESTAMP |
+
+### Relacionamentos (atualizado — v8.0)
+```
+moradores    N ←→ N residencias        (via morador_residencia — junction table)
+moradores    1 ←→ N acessos
+visitantes   1 ←→ N acessos
+funcionarios 1 ←→ N acessos           (porteiro que registrou)
+veiculos     1 ←→ N acessos           (veiculo usado no acesso)
+
+moradores    1 ←→ N veiculos
+funcionarios 1 ←→ N veiculos
+visitantes   1 ←→ N veiculos
+
+moradores    1 ←→ 1 config_acesso_morador        (política de segurança individual)
+condominio   1 ←→ 1 assinatura_condominio        (UNIQUE codigo_condominio — 1 contrato por condo)
+moradores    1 ←→ 1 assinatura_condominio        (responsavel_id — síndico que assinou)
+```
+> **v8.0:** A referência bidirecional `moradores.assinatura_id` foi removida. A assinatura agora pertence ao **condomínio** (não ao morador individual). `UNIQUE(codigo_condominio)` garante no banco que um condomínio não pode ter dois contratos simultâneos.
