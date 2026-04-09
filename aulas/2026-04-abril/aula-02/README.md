@@ -1,132 +1,144 @@
-# Aula 02 — Banco de Dados + CRUD: Do Caderno de Registros ao Sistema em Python
+# Aula 02 — Banco de Dados na Prática: DBeaver + SQLite + Python
 
 **Data:** 09 de abril de 2026
 **Duração:** 2 horas
-**Pré-requisito:** Tarefa antecipada concluída (banco `portaria.db` criado com as 3 tabelas)
-
----
-
-## Antes da Aula: Tarefa Antecipada (feita na semana)
-
-Você recebeu o arquivo `projeto_portaria_completo.sql` e durante a semana:
-- Criou 3 tabelas: `moradores` (com foto, biometria e tipo), `visitantes` e `acessos`
-- Inseriu dados de exemplo (5 moradores, 4 visitantes, 4 acessos)
-- Praticou consultas SELECT, JOIN, GROUP BY
-- Resolveu os 10 exercícios SQL
-
-Se ainda não fez, leia o arquivo `TAREFA-ANTECIPADA.md` e siga os passos!
+**Pré-requisito:** Ter o DBeaver instalado (baixe em dbeaver.io)
 
 ---
 
 ## O que Vamos Fazer Hoje
 
-Como você já criou o banco de dados na tarefa da semana, hoje vamos **dar vida a ele usando Python!**
+Hoje é dia de colocar a mão na massa! Vamos:
 
-### Parte 1: Revisão + Teoria (30 minutos)
+1. **Configurar o DBeaver** — ferramenta visual para explorar o banco
+2. **Abrir e explorar** as tabelas do nosso projeto
+3. **Revisar juntos** a estrutura dos dados (moradores, residências, acessos)
+4. **Entender como SQL vira Python** — o mapeamento de domínio
+5. **Rodar o sistema CRUD** de moradores pelo terminal
 
-#### 1.1 Verificação do Banco Criado
+Sem pressa — vamos no ritmo certo!
 
-Vamos começar confirmando que seu banco está funcionando:
+---
+
+## Parte 1: Configurando o DBeaver (30 minutos)
+
+O DBeaver é como um "explorador de arquivos" para bancos de dados.
+Em vez de pastas e arquivos, você vê **tabelas e registros**!
+
+### Passo a Passo
+
+1. Abra o DBeaver
+2. Menu: **Database → New Connection** (ou botão "+")
+3. Procure **SQLite** na lista e clique **Next**
+4. Clique **Browse** e navegue até: `src/infra/database/portaria.db`
+5. Clique **Test Connection** — deve aparecer "Connected!"
+6. Clique **Finish**
+7. No painel esquerdo, expanda: **portaria.db → Tables**
+8. Clique em **moradores** → aba **Data** para ver os registros!
+
+**Pronto!** Agora você pode ver todos os dados do banco visualmente.
+
+---
+
+## Parte 2: Revisando as Tabelas Juntos (30 minutos)
+
+Nosso banco tem **9 tabelas** — como 9 gavetas de um armário:
+
+| Tabela | O que guarda |
+|--------|-------------|
+| `moradores` | Dados pessoais (nome, CPF, foto) |
+| `residencias` | Apartamentos e casas |
+| `morador_residencia` | Quem mora onde (a "ponte") |
+| `visitantes` | Quem visita o condomínio |
+| `funcionarios` | Porteiros, zeladores |
+| `veiculos` | Carros e motos |
+| `acessos` | Entradas e saídas |
+| `config_acesso_morador` | Regras de segurança |
+| `assinatura_condominio` | Contrato do condomínio |
+
+### A Grande Sacada: Tabelas Conectadas
+
+A tabela `moradores` guarda dados **pessoais** (nome, CPF).
+O **endereço** fica em `residencias`.
+A **ponte** entre eles é `morador_residencia`.
+
+```
+moradores  ←→  morador_residencia  ←→  residencias
+(pessoa)        (quem mora onde)       (apartamento)
+```
+
+Isso permite que um morador tenha vários apartamentos!
+
+---
+
+## Parte 3: SQL → Python — O Domínio (20 minutos)
+
+Cada tabela do banco vira uma **classe Python**:
+
+```python
+# No SQL:
+#   CREATE TABLE moradores (
+#       nome TEXT NOT NULL,
+#       cpf  TEXT UNIQUE NOT NULL,
+#       ...
+#   );
+
+# No Python (arquivo src/core/models/morador.py):
+@dataclass
+class Morador:
+    nome: str              # TEXT NOT NULL → str (obrigatório)
+    cpf: str               # TEXT UNIQUE   → str (obrigatório)
+    id: Optional[int] = None  # PRIMARY KEY → None (banco gera)
+    ativo: bool = True     # DEFAULT 1    → True
+```
+
+O arquivo `morador.py` já está pronto com todos os campos mapeados.
+Abra e leia os comentários — cada atributo explica a coluna SQL correspondente.
+
+---
+
+## Parte 4: Prática — Rodando o CRUD (40 minutos)
+
+Agora vamos rodar o sistema CRUD pelo terminal!
 
 ```bash
-sqlite3 portaria.db
-.tables
-SELECT COUNT(*) FROM moradores;    -- Deve retornar 5
-SELECT COUNT(*) FROM visitantes;   -- Deve retornar 4
-SELECT COUNT(*) FROM acessos;      -- Deve retornar 4
-.quit
+cd aulas/2026-04-abril/aula-02/exercicio
+python moradores_crud.py
 ```
 
-Se tiver alguma dúvida dos exercícios SQL da semana, é hora de tirar!
+O menu permite:
+- **1** — Cadastrar um morador novo
+- **2** — Listar todos os moradores (com JOIN das residências!)
+- **3** — Buscar por nome
+- **4** — Atualizar telefone/email
+- **5** — Desativar (soft delete)
+- **6** — Ver resumo do condomínio
 
-#### 1.2 Recapitulação Rápida: O que é um Banco de Dados?
+Experimente cadastrar um morador, listar, buscar... Explore!
 
-Imagine que você trabalha na portaria do condomínio e precisa guardar informações sobre todos os moradores:
-- **Cada morador tem um papel** com seus dados (nome, CPF, numero_residencia, telefone)
-- **Você organiza esses papéis em uma pasta** (isso é uma **tabela**)
-- **A pasta fica em um armário** que você acessa rapidamente quando precisa (isso é o **banco de dados**)
+---
 
-Você já fez isso na prática com SQL! Agora vamos fazer pelo Python.
+## Tarefa da Semana
 
-#### 1.3 O que é CRUD?
+Você já tem o modelo de `moradores` pronto (`src/core/models/morador.py`).
+Agora é sua vez de criar os modelos das outras tabelas!
 
-Você já parou para pensar em como seu celular guarda nomes na agenda de contatos? Pois é... tudo funciona com 4 operações simples que todo programador do mundo usa!
+### Como fazer:
 
-- **C** de **Create** (Criar): Quando você adiciona um novo contato na agenda
-- **R** de **Read** (Ler): Quando você abre a agenda e procura por um contato
-- **U** de **Update** (Atualizar): Quando você muda o número de telefone de um amigo
-- **D** de **Delete** (Deletar): Quando você apaga um contato que não precisa mais
+1. Abra o `GUIA_MAPEAMENTO.md` em `src/core/models/`
+2. Abra o `projeto_portaria_completo.sql` no DBeaver
+3. Siga a receita: olhe o CREATE TABLE → crie a classe Python
 
-Essas 4 operações — **CRUD** — são exatamente o que todo programa faz com dados.
+### Tabelas para mapear:
 
-#### 1.4 SQL que Você Já Conhece → Python
+| Arquivo a criar | Tabela SQL | Dificuldade |
+|----------------|-----------|-------------|
+| `visitante.py` | visitantes | Fácil |
+| `funcionario.py` | funcionarios | Fácil |
+| `residencia.py` | residencias | Fácil |
+| `veiculo.py` | veiculos | Médio |
 
-| O que quer fazer | SQL puro (você já sabe!) | Em Python |
-|------------------|--------------------------|-----------|
-| Inserir morador | `INSERT INTO moradores ...` | `cursor.execute("INSERT INTO moradores ...", (dados))` |
-| Listar moradores | `SELECT * FROM moradores` | `cursor.execute("SELECT * FROM moradores")` |
-| Buscar por nome | `SELECT ... WHERE nome LIKE '%João%'` | `cursor.execute("SELECT ... WHERE nome LIKE ?", ("%João%",))` |
-| Atualizar dados | `UPDATE moradores SET ... WHERE id = 1` | `cursor.execute("UPDATE moradores SET ... WHERE id = ?", (1,))` |
-| Soft delete | `UPDATE moradores SET ativo = 0 WHERE id = 1` | `cursor.execute("UPDATE ... SET ativo = 0 WHERE id = ?", (1,))` |
-
-**A grande sacada:** O SQL é o MESMO que você praticou na semana! A diferença é que agora o Python executa ele para você.
-
-#### 1.5 Trabalhando com SQLite3 no Python
-
-```python
-import sqlite3
-
-# Conectar ao banco que você já criou
-conexao = sqlite3.connect('portaria.db')
-cursor = conexao.cursor()
-
-# Executar um comando SQL
-cursor.execute("SELECT * FROM moradores WHERE ativo = 1")
-
-# Pegar os resultados
-moradores = cursor.fetchall()
-
-# Salvar mudanças (para INSERT, UPDATE, DELETE)
-conexao.commit()
-
-# Fechar a conexão quando terminar
-conexao.close()
-```
-
-#### 1.6 Tratamento de Erros: try/except
-
-Quando trabalhamos com banco de dados, coisas podem dar errado (CPF duplicado, banco travado, etc.). O `try/except` protege seu programa:
-
-```python
-try:
-    cursor.execute("INSERT INTO moradores (nome, cpf) VALUES (?, ?)", (nome, cpf))
-    conexao.commit()
-    print("Sucesso!")
-except sqlite3.IntegrityError:
-    print("Erro: CPF já existe!")
-except Exception as erro:
-    print(f"Erro inesperado: {erro}")
-```
-
-É como dizer: "Tente fazer isso. Se der erro, faça aquilo em vez de travar."
-
-### Parte 2: Prática — Sistema CRUD Completo (1h30)
-
-Vamos construir um **sistema completo de gerenciamento de moradores** com menu interativo!
-
-O arquivo `moradores_crud.py` na pasta `exercicio/` já tem:
-- Conexão ao banco pronta
-- Menu funcionando
-- Função `atualizar_morador()` como exemplo
-- TODOs nos lugares que você precisa completar
-
-Você vai implementar:
-1. **cadastrar_morador()** — Pede dados e insere no banco (CREATE)
-2. **listar_moradores()** — Mostra todos os moradores ativos (READ)
-3. **buscar_morador()** — Procura por nome com LIKE (READ específico)
-4. **desativar_morador()** — Marca como inativo, sem deletar (DELETE macio)
-
-Siga as instruções detalhadas no `INSTRUCOES.md`!
+**Dica:** Comece pelo `visitante.py` — é o mais parecido com `morador.py`!
 
 ---
 
@@ -134,17 +146,12 @@ Siga as instruções detalhadas no `INSTRUCOES.md`!
 
 Ao final desta aula, você conseguirá:
 
-- [ ] Confirmar que o banco `portaria.db` da tarefa da semana está funcionando
-- [ ] Explicar o que é CRUD com suas próprias palavras
-- [ ] Conectar ao banco de dados SQLite a partir do Python
-- [ ] Usar try/except para tratar erros
-- [ ] Escrever uma função para cadastrar dados (CREATE)
-- [ ] Escrever uma função para listar dados (READ)
-- [ ] Escrever uma função para buscar dados (READ específico com LIKE)
-- [ ] Escrever uma função para desativar dados (DELETE macio)
-- [ ] Criar um menu de texto que coordena todas as operações
-- [ ] Validar dados antes de salvar (evitar CPF duplicado)
-- [ ] Fazer commit do seu trabalho no Git
+- [ ] Conectar o DBeaver ao banco SQLite
+- [ ] Explorar tabelas e dados visualmente
+- [ ] Explicar como as 9 tabelas se relacionam
+- [ ] Entender o mapeamento SQL → classe Python
+- [ ] Rodar o CRUD de moradores pelo terminal
+- [ ] Cadastrar, buscar e listar moradores
 
 ---
 
@@ -152,30 +159,23 @@ Ao final desta aula, você conseguirá:
 
 ```
 aula-02/
-├── README.md                       ← Este arquivo (teoria e conceitos)
-├── TAREFA-ANTECIPADA.md            ← Instruções da tarefa enviada antes da aula
-├── material-complementar.md        ← Vídeos e artigos para aprender mais
+├── README.md                         ← Este arquivo
+├── TAREFA-ANTECIPADA.md              ← Instruções da semana anterior
+├── material-complementar.md          ← Vídeos e artigos extras
 ├── exercicio/
-│   ├── INSTRUCOES.md               ← Passo a passo do exercício da aula
-│   ├── schema.sql                  ← Schema da tabela moradores (referência)
-│   ├── criar_banco.py              ← Script para criar o banco (referência)
-│   ├── projeto_portaria_completo.sql ← SQL completo (tarefa da semana)
-│   └── moradores_crud.py           ← SEU ARQUIVO DE TRABALHO DA AULA!
+│   ├── INSTRUCOES.md                 ← Passo a passo detalhado
+│   ├── moradores_crud.py             ← Sistema CRUD (alinhado ao SQL completo)
+│   ├── criar_banco.py                ← Script de criação + missões
+│   ├── projeto_portaria_completo.sql ← SQL com todas as 9 tabelas
+│   ├── projeto_portaria_sqlserver.sql← Versão SQL Server
+│   ├── schema.sql                    ← Schema simplificado
+│   └── portaria.db                   ← Banco de dados SQLite
 └── slides/
-    └── apresentacao-aula02.pptx
+    ├── apresentacao-aula02.pptx      ← Slides da aula
+    └── gerar-apresentacao.js         ← Script de geração
 ```
 
 ---
 
-## Próximos Passos
-
-1. Se ainda não fez a tarefa antecipada, faça AGORA! (arquivo `TAREFA-ANTECIPADA.md`)
-2. Na aula, abra o `INSTRUCOES.md` e siga os passos
-3. Complete o `moradores_crud.py` com as funções CRUD
-4. Se ficou com dúvida, revise a teoria acima ou consulte o `material-complementar.md`
-
-**Na Aula 03**, vamos continuar evoluindo o CRUD: adicionar busca de visitantes, consultas com JOIN entre tabelas, e começar a organizar o código em camadas (separação de responsabilidades).
-
----
-
-**Dica importante**: CRUD aparece em TUDO na programação. Cada aplicativo, site ou sistema que você usa no dia a dia faz CRUD. Depois dessa aula, você vai olhar para o WhatsApp, Instagram e Netflix de um jeito diferente!
+**Lembre-se:** Programação se aprende praticando. Se travar em alguma parte,
+releia os comentários no código — eles foram escritos pensando em você!

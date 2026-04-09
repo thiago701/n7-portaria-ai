@@ -1,26 +1,28 @@
 -- ============================================================================
 -- PROJETO PORTARIA INTELIGENTE — BANCO DE DADOS COMPLETO (v1.0 - FINAL)
+-- SQL SERVER COMPATIBLE VERSION
 -- ============================================================================
 -- Aluno: Ademilson
 -- Aula 02 (Ampliada) — Banco de Dados + Estrutura Completa do Projeto
 -- Data da Aula: 09/04/2026
 --
--- COMO EXECUTAR:
---   sqlite3 portaria.db < projeto_portaria_completo.sql
+-- CONVERSAO SQLITE -> SQL SERVER:
+-- Este arquivo foi convertido da versao SQLite original para ser executado em SQL Server.
+-- Todas as estruturas, dados e comentarios foram preservados.
 --
---   Ou no Python:
---   import sqlite3
---   conn = sqlite3.connect('portaria.db')
---   with open('projeto_portaria_completo.sql', 'r') as f:
---       conn.executescript(f.read())
+-- COMO EXECUTAR:
+--   No SQL Server Management Studio (SSMS):
+--     1. Abra um novo Query Window
+--     2. Cole o conteudo deste arquivo
+--     3. Pressione F5 ou Ctrl+E para executar
+--
+--   Ou via sqlcmd:
+--     sqlcmd -S servidor -U usuario -P senha -d database -i projeto_portaria_sqlserver.sql
 -- ============================================================================
 
-PRAGMA foreign_keys = ON;
--- Ativa verificacao de chaves estrangeiras.
--- Por padrao o SQLite NAO verifica FKs — este PRAGMA ativa!
 
 -- ============================================================================
--- LIMPEZA: DROP TABLE IF EXISTS na ordem correta para evitar erros de FK.
+-- LIMPEZA: DROP TABLE IF EXISTS na ordem correta (filhas antes das maes)
 -- ============================================================================
 DROP TABLE IF EXISTS acessos;
 DROP TABLE IF EXISTS morador_residencia;
@@ -42,49 +44,49 @@ DROP TABLE IF EXISTS moradores;
 --  Dados da UNIDADE estao em 'residencias'.
 -- ======================================================================
 CREATE TABLE moradores (
-    id                    INTEGER   PRIMARY KEY AUTOINCREMENT,
+    id INT IDENTITY(1,1) PRIMARY KEY,
 
-    nome                  TEXT      NOT NULL,
+    nome                  NVARCHAR(255)      NOT NULL,
     -- Nome completo. Obrigatorio.
 
-    cpf                   TEXT      UNIQUE NOT NULL
-                                    CHECK(length(cpf) = 11),
-    -- CPF sem pontos (11 digitos). UNIQUE = nao repete. TEXT = preserva zero inicial.
+    cpf NVARCHAR(11)      UNIQUE NOT NULL
+                                    CHECK(LEN(cpf) = 11),
+    -- CPF sem pontos (11 digitos). UNIQUE = nao repete. NVARCHAR(255) = preserva zero inicial.
 
-    telefone              TEXT,
-    email                 TEXT      CHECK(email LIKE '%@%.%'),
+    telefone              NVARCHAR(255),
+    email                 NVARCHAR(255)      CHECK(email LIKE '%@%.%'),
     dt_nascimento         DATE,
 
-    foto                  BLOB,
+    foto                  VARBINARY(MAX),
     -- Bytes da foto (JPG/PNG). Em producao: open('foto.jpg','rb').read()
 
     dt_foto_validade      DATE,
     -- Renovar a cada 2 anos — pessoas mudam com o tempo!
 
-    biometria             BLOB,
+    biometria             VARBINARY(MAX),
     -- Bytes do template biometrico (impressao digital).
 
     dt_biometria_validade DATE,
     -- Renovar a cada 2 anos.
 
     -- LGPD (Lei 13.709/2018) ---------------------------------------------------
-    termos_lgpd           BLOB,
+    termos_lgpd           VARBINARY(MAX),
     -- Bytes do PDF dos Termos de Uso aceitos pelo morador.
     -- Guardamos o DOCUMENTO EXATO — evidencia juridica.
 
-    dt_aceite_lgpd        DATETIME,
+    dt_aceite_lgpd        DATETIME2,
     -- Timestamp do aceite. NULL = ainda nao formalizado.
     -- ---------------------------------------------------------------------------
 
-    ativo                 BOOLEAN   DEFAULT 1
+    ativo                 BIT   DEFAULT 1
                                     CHECK(ativo IN (0, 1)),
     -- 1 = ativo. 0 = soft delete (dado preservado, morador "invisivel").
 
-    correlation_id        TEXT      UNIQUE NOT NULL,
+    correlation_id        NVARCHAR(255)      UNIQUE NOT NULL,
     -- SHA-256 de 'moradores:{cpf}'. Usado para sync sem duplicatas.
 
-    dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP,
-    dt_atualizado_em      DATETIME  DEFAULT CURRENT_TIMESTAMP
+    dt_criado_em          DATETIME2 DEFAULT GETDATE(),
+    dt_atualizado_em      DATETIME2 DEFAULT GETDATE()
 );
 
 
@@ -95,46 +97,46 @@ CREATE TABLE moradores (
 --  >> CAMPOS DO ADEMILSON: tipo_moradia, interfone, observacao (v5.0)
 -- ======================================================================
 CREATE TABLE residencias (
-    id                    INTEGER   PRIMARY KEY AUTOINCREMENT,
+    id INT IDENTITY(1,1) PRIMARY KEY,
 
-    codigo_condominio     TEXT      NOT NULL,
+    codigo_condominio     NVARCHAR(255)      NOT NULL,
     -- Codigo do condominio. Ex: 'COND-001'.
 
-    numero_residencia     TEXT      NOT NULL,
+    numero_residencia     NVARCHAR(255)      NOT NULL,
     -- Numero da unidade: '101', '101-A', '08' (lote), 'Cobertura'.
 
-    bloco                 TEXT,
+    bloco                 NVARCHAR(255),
     -- Ex: 'A', 'B', 'Torre 1'. NULL em condominios horizontais (casas).
 
-    quadra                TEXT,
+    quadra                NVARCHAR(255),
     -- Ex: '01', '05'. NULL em condominios verticais (predios).
 
-    andar                 INTEGER,
+    andar                 INT,
     -- Numero do andar. NULL em casas.
 
     -- >> SUGESTAO DO ADEMILSON (v5.0) -----------------------------------------
-    tipo_moradia          TEXT      DEFAULT 'apartamento'
+    tipo_moradia          NVARCHAR(255)      DEFAULT 'apartamento'
                                     CHECK(tipo_moradia IN ('apartamento','casa','comercial','outro')),
     -- Tipo fisico da unidade.
     -- SUGESTAO DO ADEMILSON: ele percebeu que o sistema precisa saber
     -- se e casa ou apartamento para o porteiro saber como chamar o morador!
 
-    interfone             TEXT,
+    interfone             NVARCHAR(255),
     -- Codigo do interfone desta unidade. Ex: '101', '1-A'.
     -- SUGESTAO DO ADEMILSON: campo fundamental para a portaria chamar o morador!
 
-    observacao            TEXT,
+    observacao            NVARCHAR(255),
     -- Observacoes sobre a unidade. Ex: 'Cobertura — acesso especial'.
     -- SUGESTAO DO ADEMILSON: anotacoes livres que o porteiro precisa ver.
     -- --------------------------------------------------------------------------
 
-    ativo                 BOOLEAN   DEFAULT 1
+    ativo                 BIT   DEFAULT 1
                                     CHECK(ativo IN (0, 1)),
 
-    correlation_id        TEXT      UNIQUE NOT NULL,
+    correlation_id        NVARCHAR(255)      UNIQUE NOT NULL,
 
-    dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP,
-    dt_atualizado_em      DATETIME  DEFAULT CURRENT_TIMESTAMP
+    dt_criado_em          DATETIME2 DEFAULT GETDATE(),
+    dt_atualizado_em      DATETIME2 DEFAULT GETDATE()
 );
 
 
@@ -151,25 +153,25 @@ CREATE TABLE residencias (
 --  Aqui, 'morador_residencia' conecta moradores a residencias.
 -- ======================================================================
 CREATE TABLE morador_residencia (
-    id                    INTEGER   PRIMARY KEY AUTOINCREMENT,
+    id INT IDENTITY(1,1) PRIMARY KEY,
 
-    morador_id            INTEGER   NOT NULL,
-    residencia_id         INTEGER   NOT NULL,
+    morador_id            INT   NOT NULL,
+    residencia_id         INT   NOT NULL,
 
-    tipo_morador          TEXT      DEFAULT 'proprietario'
+    tipo_morador          NVARCHAR(255)      DEFAULT 'proprietario'
                                     CHECK(tipo_morador IN ('proprietario', 'inquilino')),
     -- O mesmo morador pode ser proprietario de uma unidade e inquilino de outra!
 
-    dt_inicio             DATE      NOT NULL DEFAULT (DATE('now')),
+    dt_inicio             DATE      NOT NULL DEFAULT (CAST(GETDATE() AS DATE)),
     dt_fim                DATE,
     -- NULL = ainda mora aqui.
 
-    ativo                 BOOLEAN   DEFAULT 1
+    ativo                 BIT   DEFAULT 1
                                     CHECK(ativo IN (0, 1)),
 
-    correlation_id        TEXT      UNIQUE NOT NULL,
+    correlation_id        NVARCHAR(255)      UNIQUE NOT NULL,
 
-    dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP,
+    dt_criado_em          DATETIME2 DEFAULT GETDATE(),
 
     FOREIGN KEY (morador_id)    REFERENCES moradores(id),
     FOREIGN KEY (residencia_id) REFERENCES residencias(id),
@@ -183,24 +185,24 @@ CREATE TABLE morador_residencia (
 --  Pessoas que visitam o condominio.
 -- ======================================================================
 CREATE TABLE visitantes (
-    id                    INTEGER   PRIMARY KEY AUTOINCREMENT,
+    id INT IDENTITY(1,1) PRIMARY KEY,
 
-    nome                  TEXT      NOT NULL,
-    documento             TEXT      NOT NULL,
+    nome                  NVARCHAR(255)      NOT NULL,
+    documento             NVARCHAR(255)      NOT NULL,
 
-    tipo_documento        TEXT      DEFAULT 'RG'
+    tipo_documento        NVARCHAR(255)      DEFAULT 'RG'
                                     CHECK(tipo_documento IN ('RG', 'CNH', 'PASSAPORTE', 'OUTRO')),
 
-    telefone              TEXT,
+    telefone              NVARCHAR(255),
 
-    foto                  BLOB,
+    foto                  VARBINARY(MAX),
     -- Foto do visitante. Util para reconhecimento facial futuro.
 
-    bloqueado             BOOLEAN   DEFAULT 0
+    bloqueado             BIT   DEFAULT 0
                                     CHECK(bloqueado IN (0, 1)),
     -- 1 = bloqueado — porta nao abre, porteiro e alertado.
 
-    motivo_bloqueio       TEXT,
+    motivo_bloqueio       NVARCHAR(255),
     -- Se bloqueado = 1, por que? Registra o historico.
 
     dt_validade_inicio    DATE,
@@ -211,9 +213,9 @@ CREATE TABLE visitantes (
                                         dt_validade_fim >= dt_validade_inicio),
     -- Ate esta data. NULL = sem prazo. CHECK evita datas invertidas.
 
-    correlation_id        TEXT      UNIQUE NOT NULL,
+    correlation_id        NVARCHAR(255)      UNIQUE NOT NULL,
 
-    dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP
+    dt_criado_em          DATETIME2 DEFAULT GETDATE()
 );
 
 
@@ -225,22 +227,22 @@ CREATE TABLE visitantes (
 --     precisava saber QUEM registrou cada acesso — origem desta tabela!
 -- ======================================================================
 CREATE TABLE funcionarios (
-    id                    INTEGER   PRIMARY KEY AUTOINCREMENT,
-    nome                  TEXT      NOT NULL,
-    cpf                   TEXT      UNIQUE NOT NULL  CHECK(length(cpf) = 11),
-    cargo                 TEXT      DEFAULT 'porteiro'
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    nome                  NVARCHAR(255)      NOT NULL,
+    cpf NVARCHAR(11)      UNIQUE NOT NULL  CHECK(LEN(cpf) = 11),
+    cargo                 NVARCHAR(255)      DEFAULT 'porteiro'
                                     CHECK(cargo IN ('porteiro','zelador','administrador','outro')),
-    setor                 TEXT,
+    setor                 NVARCHAR(255),
     -- Texto livre: 'portaria', 'administracao', 'limpeza', 'manutencao'
 
-    login                 TEXT      UNIQUE NOT NULL,
-    senha_hash            TEXT      NOT NULL  CHECK(length(senha_hash) = 64),
+    login                 NVARCHAR(255)      UNIQUE NOT NULL,
+    senha_hash            NVARCHAR(255)      NOT NULL  CHECK(LEN(senha_hash) = 64),
     -- SHA-256 da senha (64 hex chars). NUNCA armazenar senha em texto puro!
     -- Python: import hashlib; hashlib.sha256('senha'.encode()).hexdigest()
 
-    ativo                 BOOLEAN   DEFAULT 1  CHECK(ativo IN (0, 1)),
-    correlation_id        TEXT      UNIQUE NOT NULL,
-    dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP
+    ativo                 BIT   DEFAULT 1  CHECK(ativo IN (0, 1)),
+    correlation_id        NVARCHAR(255)      UNIQUE NOT NULL,
+    dt_criado_em          DATETIME2 DEFAULT GETDATE()
 );
 
 
@@ -254,21 +256,21 @@ CREATE TABLE funcionarios (
 --     e visitantes. Excelente instinto de modelagem!
 -- ======================================================================
 CREATE TABLE veiculos (
-    id                    INTEGER   PRIMARY KEY AUTOINCREMENT,
-    placa                 TEXT      UNIQUE NOT NULL  CHECK(length(placa) >= 7),
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    placa                 NVARCHAR(255)      UNIQUE NOT NULL  CHECK(LEN(placa) >= 7),
     -- Formato: 'ABC-1234' (antigo) ou 'ABC1D23' (Mercosul). Minimo 7 chars.
 
-    modelo                TEXT,
-    cor                   TEXT,
+    modelo                NVARCHAR(255),
+    cor                   NVARCHAR(255),
 
-    morador_id            INTEGER,
-    funcionario_id        INTEGER,
-    visitante_id          INTEGER,
+    morador_id            INT,
+    funcionario_id        INT,
+    visitante_id          INT,
     -- Apenas UM deve ser preenchido — os outros ficam NULL.
 
-    ativo                 BOOLEAN   DEFAULT 1  CHECK(ativo IN (0, 1)),
-    correlation_id        TEXT      UNIQUE NOT NULL,
-    dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP,
+    ativo                 BIT   DEFAULT 1  CHECK(ativo IN (0, 1)),
+    correlation_id        NVARCHAR(255)      UNIQUE NOT NULL,
+    dt_criado_em          DATETIME2 DEFAULT GETDATE(),
 
     FOREIGN KEY (morador_id)      REFERENCES moradores(id),
     FOREIGN KEY (funcionario_id)  REFERENCES funcionarios(id),
@@ -287,37 +289,37 @@ CREATE TABLE veiculos (
 --  Pelo menos 1 dos tres deve ser verdadeiro (CHECK garante isso).
 -- ======================================================================
 CREATE TABLE acessos (
-    id                    INTEGER   PRIMARY KEY AUTOINCREMENT,
+    id INT IDENTITY(1,1) PRIMARY KEY,
 
-    visitante_id          INTEGER   NOT NULL,
-    morador_id            INTEGER,
+    visitante_id          INT   NOT NULL,
+    morador_id            INT,
     -- Morador visitado. NULL = servico geral sem morador especifico.
 
-    funcionario_id        INTEGER,
+    funcionario_id        INT,
     -- Porteiro que registrou este acesso.
 
-    veiculo_id            INTEGER,
+    veiculo_id            INT,
     -- Veiculo usado. NULL = veio a pe.
 
-    tipo_acesso           TEXT      DEFAULT 'pedestre'
+    tipo_acesso           NVARCHAR(255)      DEFAULT 'pedestre'
                                     CHECK(tipo_acesso IN ('pedestre', 'garagem')),
     -- 'pedestre' = portao principal
     -- 'garagem'  = cancela do estacionamento
 
-    auth_senha            BOOLEAN   DEFAULT 0  CHECK(auth_senha IN (0,1)),
-    auth_digital          BOOLEAN   DEFAULT 0  CHECK(auth_digital IN (0,1)),
-    auth_facial           BOOLEAN   DEFAULT 0  CHECK(auth_facial IN (0,1)),
+    auth_senha            BIT   DEFAULT 0  CHECK(auth_senha IN (0,1)),
+    auth_digital          BIT   DEFAULT 0  CHECK(auth_digital IN (0,1)),
+    auth_facial           BIT   DEFAULT 0  CHECK(auth_facial IN (0,1)),
 
-    motivo                TEXT      NOT NULL,
-    dt_entrada_em         DATETIME  NOT NULL  DEFAULT CURRENT_TIMESTAMP,
-    dt_saida_em           DATETIME,
+    motivo                NVARCHAR(255)      NOT NULL,
+    dt_entrada_em         DATETIME2  NOT NULL  DEFAULT GETDATE(),
+    dt_saida_em           DATETIME2,
     -- NULL = pessoa AINDA ESTA DENTRO do condominio.
 
-    porteiro              TEXT,
+    porteiro              NVARCHAR(255),
     -- Nome do porteiro em texto livre (compatibilidade).
 
-    observacoes           TEXT,
-    correlation_id        TEXT      UNIQUE NOT NULL,
+    observacoes           NVARCHAR(255),
+    correlation_id        NVARCHAR(255)      UNIQUE NOT NULL,
 
     CHECK(auth_senha + auth_digital + auth_facial >= 1),
     -- Nenhum acesso pode ser registrado sem autenticacao!
@@ -335,22 +337,22 @@ CREATE TABLE acessos (
 --  Quando ausente, o sistema aplica o padrao do condominio (1 fator).
 -- ======================================================================
 CREATE TABLE config_acesso_morador (
-    id                    INTEGER   PRIMARY KEY AUTOINCREMENT,
+    id INT IDENTITY(1,1) PRIMARY KEY,
     morador_id            INTEGER   UNIQUE NOT NULL,
     -- UNIQUE: cada morador tem no maximo 1 config (relacao 1:1).
 
-    fatores_requeridos    INTEGER   DEFAULT 1  CHECK(fatores_requeridos IN (1, 2)),
+    fatores_requeridos    INT   DEFAULT 1  CHECK(fatores_requeridos IN (1, 2)),
     -- 1 = qualquer fator aceito
     -- 2 = dois fatores obrigatorios (ex: digital + facial)
 
-    permite_senha         BOOLEAN   DEFAULT 1  CHECK(permite_senha IN (0, 1)),
-    permite_digital       BOOLEAN   DEFAULT 1  CHECK(permite_digital IN (0, 1)),
-    permite_facial        BOOLEAN   DEFAULT 0  CHECK(permite_facial IN (0, 1)),
+    permite_senha         BIT   DEFAULT 1  CHECK(permite_senha IN (0, 1)),
+    permite_digital       BIT   DEFAULT 1  CHECK(permite_digital IN (0, 1)),
+    permite_facial        BIT   DEFAULT 0  CHECK(permite_facial IN (0, 1)),
     -- DEFAULT 0 para facial: exige hardware de camera especial.
 
-    correlation_id        TEXT      UNIQUE NOT NULL,
-    dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP,
-    dt_atualizado_em      DATETIME  DEFAULT CURRENT_TIMESTAMP,
+    correlation_id        NVARCHAR(255)      UNIQUE NOT NULL,
+    dt_criado_em          DATETIME2 DEFAULT GETDATE(),
+    dt_atualizado_em      DATETIME2 DEFAULT GETDATE(),
 
     CHECK(permite_senha + permite_digital + permite_facial >= 1),
     -- Pelo menos 1 tipo de autenticacao deve estar habilitado.
@@ -365,19 +367,19 @@ CREATE TABLE config_acesso_morador (
 --  1 registro por condominio (UNIQUE codigo_condominio).
 -- ======================================================================
 CREATE TABLE assinatura_condominio (
-    id                    INTEGER   PRIMARY KEY AUTOINCREMENT,
+    id INT IDENTITY(1,1) PRIMARY KEY,
 
-    codigo_condominio     TEXT      UNIQUE NOT NULL,
+    codigo_condominio     NVARCHAR(255)      UNIQUE NOT NULL,
     -- Codigo interno. UNIQUE = 1 assinatura por condominio. Ex: 'COND-001'
 
-    nome_condominio       TEXT      NOT NULL,
-    endereco              TEXT,
+    nome_condominio       NVARCHAR(255)      NOT NULL,
+    endereco              NVARCHAR(255),
 
-    responsavel_id        INTEGER,
+    responsavel_id        INT,
     -- FK → moradores.id (sindico que assinou o contrato).
 
-    numero_contrato       TEXT      UNIQUE NOT NULL,
-    contrato              BLOB,
+    numero_contrato       NVARCHAR(255)      UNIQUE NOT NULL,
+    contrato              VARBINARY(MAX),
     -- Bytes do PDF do contrato assinado.
 
     dt_ativacao           DATE,
@@ -386,13 +388,13 @@ CREATE TABLE assinatura_condominio (
                                         dt_vigencia_fim IS NULL OR
                                         dt_vigencia_fim >= dt_vigencia_inicio),
 
-    status                TEXT      DEFAULT 'ativo'
+    status                NVARCHAR(255)      DEFAULT 'ativo'
                                     CHECK(status IN ('ativo','pendente','vencido','cancelado')),
 
-    observacoes           TEXT,
-    correlation_id        TEXT      UNIQUE NOT NULL,
-    dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP,
-    dt_atualizado_em      DATETIME  DEFAULT CURRENT_TIMESTAMP,
+    observacoes           NVARCHAR(255),
+    correlation_id        NVARCHAR(255)      UNIQUE NOT NULL,
+    dt_criado_em          DATETIME2 DEFAULT GETDATE(),
+    dt_atualizado_em      DATETIME2 DEFAULT GETDATE(),
 
     FOREIGN KEY (responsavel_id) REFERENCES moradores(id)
 );
@@ -738,7 +740,7 @@ SELECT nome, cpf FROM moradores WHERE dt_aceite_lgpd IS NULL AND ativo = 1;
 
 -- Fotos vencidas:
 SELECT nome, dt_foto_validade FROM moradores
-WHERE dt_foto_validade < DATE('now') AND ativo = 1;
+WHERE dt_foto_validade < CAST(GETDATE() AS DATE) AND ativo = 1;
 
 
 -- 4.2 — MORADOR + RESIDENCIA (JOIN N:N) ------------------------------------
@@ -807,9 +809,9 @@ WHERE a.dt_saida_em IS NULL;
 SELECT
     v.placa, v.modelo, v.cor,
     CASE
-        WHEN v.morador_id     IS NOT NULL THEN 'Morador: '     || m.nome
-        WHEN v.funcionario_id IS NOT NULL THEN 'Funcionario: ' || f.nome
-        WHEN v.visitante_id   IS NOT NULL THEN 'Visitante: '   || vis.nome
+        WHEN v.morador_id     IS NOT NULL THEN 'Morador: ' + m.nome
+        WHEN v.funcionario_id IS NOT NULL THEN 'Funcionario: ' + f.nome
+        WHEN v.visitante_id   IS NOT NULL THEN 'Visitante: ' + vis.nome
         ELSE 'Sem proprietario'
     END AS proprietario
 FROM veiculos v
@@ -921,10 +923,10 @@ SELECT
 -- DEFAULT       — valor automatico se nao informado
 -- CHECK(...)    — regra de validacao — banco RECUSA dados invalidos
 -- FOREIGN KEY   — chave estrangeira: link entre tabelas (relacao entre dados)
--- BLOB          — dados binarios (foto, PDF, biometria)
+-- VARBINARY(MAX)          — dados binarios (foto, PDF, biometria)
 -- DATE          — apenas data: 'AAAA-MM-DD'
--- DATETIME      — data e hora: 'AAAA-MM-DD HH:MM:SS'
--- BOOLEAN       — verdadeiro/falso, armazenado como 0 ou 1 no SQLite
+-- DATETIME2      — data e hora: 'AAAA-MM-DD HH:MM:SS'
+-- BIT       — verdadeiro/falso, armazenado como 0 ou 1 no SQLite
 -- INDEX         — estrutura de busca rapida (como indice de livro)
 -- LEFT JOIN     — retorna todos da tabela esquerda, mesmo sem correspondencia
 -- SHA-256       — funcao que transforma texto em hash de 64 hex chars
@@ -932,51 +934,53 @@ SELECT
 -- LGPD          — Lei Geral de Protecao de Dados (Lei 13.709/2018)
 -- SOFT DELETE   — desativar (ativo=0) em vez de deletar — preserva historico
 -- JUNCTION TABLE — tabela intermediaria que resolve relacao N:N
+-- IDENTITY(1,1)  — SQL Server: auto-incremento (equivalente ao AUTOINCREMENT)
+-- NVARCHAR       — SQL Server: texto Unicode (suporta acentos nativamente)
+-- GETDATE()      — SQL Server: data/hora atual (equivalente ao CURRENT_TIMESTAMP)
 -- ============================================================================
 
 
 -- ============================================================================
--- PARTE 6: GABARITO — RESPOSTAS EXECUTAVEIS
+-- PARTE 6: GABARITO — RESPOSTAS EXECUTAVEIS (SQL SERVER)
 -- ============================================================================
 -- Ademilson, so olhe aqui DEPOIS de tentar sozinho!
--- Copie e cole no terminal do SQLite para testar.
--- Antes de rodar, configure a exibicao bonita:
---   .mode column
---   .headers on
+-- Execute no SSMS (SQL Server Management Studio) ou via sqlcmd.
 -- ============================================================================
 
 -- ──────────────────────────────────────────────
 -- RESPOSTA 1: Inserir novo morador
 -- ──────────────────────────────────────────────
 INSERT INTO moradores (nome, cpf, telefone, correlation_id)
-VALUES ('Luiza Barbosa', '22233344455', '83944556677',
-        'gabarito_resp1_luiza_barbosa_22233344455');
+VALUES (N'Luiza Barbosa', N'22233344455', N'83944556677',
+        N'gabarito_resp1_luiza_barbosa_22233344455');
 
 -- Conferir:
-SELECT id, nome, cpf, telefone FROM moradores WHERE cpf = '22233344455';
+SELECT id, nome, cpf, telefone FROM moradores WHERE cpf = N'22233344455';
+GO
 
 
 -- ──────────────────────────────────────────────
 -- RESPOSTA 2: Residencia + vinculo morador_residencia
 -- ──────────────────────────────────────────────
 INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone, correlation_id)
-VALUES ('COND-001', '401', 'B', 4, 'apartamento', '401',
-        'gabarito_resp2_residencia_401_bloco_b');
+VALUES (N'COND-001', N'401', N'B', 4, N'apartamento', N'401',
+        N'gabarito_resp2_residencia_401_bloco_b');
+
+-- Usa subquery para pegar os IDs dinamicamente (mais seguro que chutar numeros!)
+DECLARE @morador_id INT = (SELECT id FROM moradores WHERE cpf = N'22233344455');
+DECLARE @residencia_id INT = (SELECT id FROM residencias WHERE numero_residencia = N'401' AND bloco = N'B');
 
 INSERT INTO morador_residencia (morador_id, residencia_id, tipo_morador, correlation_id)
-VALUES (
-    (SELECT id FROM moradores WHERE cpf = '22233344455'),
-    (SELECT id FROM residencias WHERE numero_residencia = '401' AND bloco = 'B'),
-    'inquilino',
-    'gabarito_resp2_vinculo_luiza_401b'
-);
+VALUES (@morador_id, @residencia_id, N'inquilino',
+        N'gabarito_resp2_vinculo_luiza_401b');
 
 -- Conferir:
 SELECT m.nome, r.numero_residencia, r.bloco, mr.tipo_morador
 FROM moradores m
     JOIN morador_residencia mr ON m.id = mr.morador_id
     JOIN residencias r ON mr.residencia_id = r.id
-WHERE m.cpf = '22233344455';
+WHERE m.cpf = N'22233344455';
+GO
 
 
 -- ──────────────────────────────────────────────
@@ -984,8 +988,9 @@ WHERE m.cpf = '22233344455';
 -- ──────────────────────────────────────────────
 UPDATE acessos SET dt_saida_em = '2026-04-09 16:00:00' WHERE id = 4;
 
--- Conferir (ninguem sem saida no registro 4):
+-- Conferir:
 SELECT id, dt_entrada_em, dt_saida_em FROM acessos WHERE id = 4;
+GO
 
 
 -- ──────────────────────────────────────────────
@@ -995,8 +1000,9 @@ SELECT m.nome, r.numero_residencia, r.interfone, mr.tipo_morador
 FROM moradores m
     JOIN morador_residencia mr ON m.id = mr.morador_id
     JOIN residencias r ON mr.residencia_id = r.id
-WHERE r.bloco = 'A' AND m.ativo = 1
+WHERE r.bloco = N'A' AND m.ativo = 1
 ORDER BY r.numero_residencia;
+GO
 
 
 -- ──────────────────────────────────────────────
@@ -1008,6 +1014,7 @@ FROM moradores m
     JOIN residencias r ON mr.residencia_id = r.id
 WHERE m.ativo = 1 AND mr.ativo = 1
 GROUP BY r.tipo_moradia;
+GO
 
 
 -- ──────────────────────────────────────────────
@@ -1016,9 +1023,10 @@ GROUP BY r.tipo_moradia;
 SELECT m.nome, COUNT(mr.residencia_id) AS unidades
 FROM moradores m
     JOIN morador_residencia mr ON m.id = mr.morador_id
-WHERE mr.tipo_morador = 'proprietario' AND mr.ativo = 1
-GROUP BY m.id
+WHERE mr.tipo_morador = N'proprietario' AND mr.ativo = 1
+GROUP BY m.id, m.nome
 HAVING COUNT(mr.residencia_id) > 1;
+GO
 
 
 -- ──────────────────────────────────────────────
@@ -1028,11 +1036,12 @@ SELECT
     COUNT(*) AS total,
     SUM(CASE WHEN dt_aceite_lgpd IS NULL THEN 1 ELSE 0 END) AS sem_aceite,
     ROUND(
-        SUM(CASE WHEN dt_aceite_lgpd IS NULL THEN 1.0 ELSE 0 END)
+        CAST(SUM(CASE WHEN dt_aceite_lgpd IS NULL THEN 1.0 ELSE 0 END) AS FLOAT)
         / COUNT(*) * 100, 1
     ) AS pct_pendente
 FROM moradores
 WHERE ativo = 1;
+GO
 
 -- ============================================================================
 -- FIM DO GABARITO
