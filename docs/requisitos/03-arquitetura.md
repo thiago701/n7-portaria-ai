@@ -1,7 +1,8 @@
 # n7-portaria-ai — Documento de Arquitetura
 
-> **Versão:** 1.0 | **Data:** 03/04/2026
-> **Princípio:** Mínimo Viável Arquitetural — simplicidade como padrão
+> **Versao:** 2.0 | **Data:** 09/04/2026
+> **Principio:** Minimo Viavel Arquitetural — simplicidade como padrao
+> **Changelog v2.0:** Tabela acessos com 2FA, correlation_id em todas as tabelas, tipo_acesso simplificado
 
 ---
 
@@ -138,8 +139,8 @@ Infra implementa consultas e persiste dados conforme solicitado por core.
 | dt_criado_em | DATETIME | DEFAULT CURRENT_TIMESTAMP |
 | — | — | UNIQUE(morador_id, residencia_id, dt_inicio) |
 
-### Tabela: visitantes
-| Coluna | Tipo | Restrições |
+### Tabela: visitantes *(atualizada — v8.0)*
+| Coluna | Tipo | Restricoes |
 |--------|------|------------|
 | id | INTEGER | PK, autoincrement |
 | nome | TEXT | NOT NULL |
@@ -149,12 +150,13 @@ Infra implementa consultas e persiste dados conforme solicitado por core.
 | foto | BLOB | |
 | bloqueado | BOOLEAN | DEFAULT 0, CHECK IN (0, 1) |
 | motivo_bloqueio | TEXT | |
-| dt_validade_inicio | DATE | NULL = sem restrição de início |
-| dt_validade_fim | DATE | NULL = sem restrição de fim; CHECK(fim >= inicio) |
+| dt_validade_inicio | DATE | NULL = sem restricao de inicio |
+| dt_validade_fim | DATE | NULL = sem restricao de fim; CHECK(fim >= inicio) |
+| correlation_id | TEXT | UNIQUE NOT NULL |
 | dt_criado_em | DATETIME | DEFAULT CURRENT_TIMESTAMP |
 
-### Tabela: funcionarios *(nova — v3.0)*
-| Coluna | Tipo | Restrições |
+### Tabela: funcionarios *(nova — v3.0, atualizada v8.0)*
+| Coluna | Tipo | Restricoes |
 |--------|------|------------|
 | id | INTEGER | PK, autoincrement |
 | nome | TEXT | NOT NULL |
@@ -164,35 +166,44 @@ Infra implementa consultas e persiste dados conforme solicitado por core.
 | login | TEXT | UNIQUE, NOT NULL |
 | senha_hash | TEXT | NOT NULL, CHECK(length=64) — hash SHA-256, nunca senha em texto puro |
 | ativo | BOOLEAN | DEFAULT 1, CHECK IN (0, 1) |
+| correlation_id | TEXT | UNIQUE NOT NULL |
 | dt_criado_em | DATETIME | DEFAULT CURRENT_TIMESTAMP |
 
-### Tabela: veiculos *(nova — v3.0)*
-| Coluna | Tipo | Restrições |
+### Tabela: veiculos *(nova — v3.0, atualizada v8.0)*
+| Coluna | Tipo | Restricoes |
 |--------|------|------------|
 | id | INTEGER | PK, autoincrement |
 | placa | TEXT | UNIQUE, NOT NULL, CHECK(length >= 7) |
 | modelo | TEXT | |
 | cor | TEXT | |
-| morador_id | INTEGER | FK → moradores.id (nullable) |
-| funcionario_id | INTEGER | FK → funcionarios.id (nullable) |
-| visitante_id | INTEGER | FK → visitantes.id (nullable) |
+| morador_id | INTEGER | FK moradores.id (nullable) |
+| funcionario_id | INTEGER | FK funcionarios.id (nullable) |
+| visitante_id | INTEGER | FK visitantes.id (nullable) |
 | ativo | BOOLEAN | DEFAULT 1, CHECK IN (0, 1) |
+| correlation_id | TEXT | UNIQUE NOT NULL |
 | dt_criado_em | DATETIME | DEFAULT CURRENT_TIMESTAMP |
 
-### Tabela: acessos *(atualizada — v3.0)*
-| Coluna | Tipo | Restrições |
+### Tabela: acessos *(atualizada — v8.0 com 2FA)*
+| Coluna | Tipo | Restricoes |
 |--------|------|------------|
-| id | INTEGER | PK, autoincrement (64-bit = equivalente a LONG) |
-| visitante_id | INTEGER | FK → visitantes.id, NOT NULL |
-| morador_id | INTEGER | FK → moradores.id (nullable) |
-| funcionario_id | INTEGER | FK → funcionarios.id (nullable) — porteiro que registrou |
-| veiculo_id | INTEGER | FK → veiculos.id (nullable) — se veio de carro |
-| tipo_acesso | TEXT | DEFAULT 'pedestre', CHECK IN ('pedestre','garagem','servico','emergencia') |
+| id | INTEGER | PK, autoincrement |
+| visitante_id | INTEGER | FK visitantes.id, NOT NULL |
+| morador_id | INTEGER | FK moradores.id (nullable) |
+| funcionario_id | INTEGER | FK funcionarios.id (nullable) — porteiro que registrou |
+| veiculo_id | INTEGER | FK veiculos.id (nullable) — se veio de carro |
+| tipo_acesso | TEXT | DEFAULT 'pedestre', CHECK IN ('pedestre','garagem') |
+| auth_senha | BOOLEAN | DEFAULT 0 — fator 1: porteiro liberou com senha |
+| auth_digital | BOOLEAN | DEFAULT 0 — fator 2: leitor biometrico confirmou |
+| auth_facial | BOOLEAN | DEFAULT 0 — fator 3: camera reconheceu rosto |
 | motivo | TEXT | NOT NULL |
 | dt_entrada_em | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP |
 | dt_saida_em | DATETIME | nullable — NULL = ainda dentro |
 | porteiro | TEXT | texto livre (compatibilidade) |
 | observacoes | TEXT | |
+| correlation_id | TEXT | UNIQUE NOT NULL |
+| — | — | CHECK(auth_senha + auth_digital + auth_facial >= 1) |
+
+> **v8.0:** Campos `auth_senha`, `auth_digital`, `auth_facial` adicionados para autenticacao multifator. `tipo_acesso` simplificado para ('pedestre','garagem'). `correlation_id` adicionado.
 
 ### Relacionamentos
 ```

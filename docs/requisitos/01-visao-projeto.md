@@ -1,6 +1,6 @@
 # n7-portaria-ai — Documento de Visão do Projeto
 
-> **Versão:** 1.0 | **Data:** 03/04/2026 | **Status:** Aprovado
+> **Versao:** 2.0 | **Data:** 09/04/2026 | **Status:** Aprovado
 > **Autores:** Thiago (Tech Lead / Mentor) & Ademilson (Desenvolvedor / Aprendiz)
 > **Organização:** Neural Tech (n7)
 
@@ -48,13 +48,17 @@ Condomínios residenciais de pequeno e médio porte enfrentam desafios recorrent
 
 ## 5. Escopo Funcional (Módulos)
 
-### Módulo 1 — Cadastro de Moradores
-- Cadastro completo (nome, numero_residencia, telefone, e-mail)
-- Listagem, busca e filtros
-- Edição e desativação de moradores
-- Foto do morador (será renovada de 2 em 2 anos)
-- Biometria Digital (será renovada de 2 em 2 anos)
-- Tipo de Morador (inquelino e/ou proprietário)
+### Modulo 1 — Cadastro de Moradores e Residencias
+- Cadastro de moradores: dados pessoais (nome, CPF, telefone, e-mail)
+- Cadastro de residencias: unidades habitacionais (numero, bloco, quadra, andar, tipo_moradia, interfone)
+- Vinculo morador-residencia N:N (um morador pode ter varias unidades, uma unidade pode ter varios moradores)
+- Tipo de morador (proprietario/inquilino) definido NO VINCULO, nao no morador
+- Listagem, busca e filtros (com JOIN entre moradores, morador_residencia e residencias)
+- Edicao e desativacao (soft delete) de moradores
+- Foto do morador como BLOB (sera renovada de 2 em 2 anos)
+- Biometria digital como BLOB (sera renovada de 2 em 2 anos)
+- Conformidade LGPD: armazenamento dos termos aceitos (BLOB) com timestamp do aceite
+- Correlation_id SHA-256 para sincronizacao entre bancos
 
 ### Módulo 2 — Registro de Visitantes
 - Cadastro do visitante na entrada (nome, documento, motivo, morador visitado)
@@ -77,14 +81,32 @@ Condomínios residenciais de pequeno e médio porte enfrentam desafios recorrent
 - Análise de padrões de visitação
 - Geração de relatórios por comando de voz/texto
 
-### Módulo 6 — Dashboard e Relatórios
-- Painel com métricas do dia (entradas, saídas, visitantes)
-- Gráficos de movimentação por período
-- Exportação de relatórios (PDF/CSV)
+### Modulo 6 — Dashboard e Relatorios
+- Painel com metricas do dia (entradas, saidas, visitantes)
+- Graficos de movimentacao por periodo
+- Exportacao de relatorios (PDF/CSV)
+
+### Modulo 7 — Gestao de Funcionarios e Veiculos *(v3.0 — contribuicao do aluno)*
+- Cadastro de funcionarios: nome, CPF, cargo, setor, login/senha (hash SHA-256)
+- Perfis diferenciados: porteiro, zelador, administrador
+- Cadastro de veiculos vinculados a moradores, funcionarios ou visitantes
+- Registro de qual funcionario efetuou cada acesso
+
+### Modulo 8 — Seguranca e Autenticacao 2FA *(v8.0)*
+- Autenticacao multifator: senha, digital, facial
+- Politica de seguranca individual por morador (config_acesso_morador)
+- Pelo menos 1 fator obrigatorio em todo registro de acesso
+- Configuravel: 1 ou 2 fatores requeridos por morador
+
+### Modulo 9 — Assinatura do Condominio *(v8.0)*
+- Contrato do condominio com o servico n7-portaria-ai
+- 1 assinatura por condominio (UNIQUE codigo_condominio)
+- Status: ativo, pendente, vencido, cancelado
+- Armazenamento do PDF do contrato assinado
 
 ---
 
-## 6. Requisitos Não-Funcionais
+## 6. Requisitos Nao-Funcionais
 
 | Categoria | Requisito |
 |-----------|-----------|
@@ -119,37 +141,47 @@ Seguindo o princípio do **Mínimo Viável Arquitetural** (Arquitetura Minimalis
 ### Monólito Modular (não microsserviços)
 **Justificativa:** Equipe de 2 pessoas, projeto em fase de aprendizado. A complexidade de microsserviços seria complexidade acidental — o problema de negócio não exige deploy independente nem escala granular. Um monólito bem estruturado com módulos isolados é a escolha correta.
 
-### Estrutura de Pastas do Projeto
+### Estrutura de Pastas do Projeto (atualizada — v2.0)
 ```
 n7-portaria-ai/
-├── app/
-│   ├── __init__.py          # Fábrica da aplicação Flask
-│   ├── models/              # Modelos de dados (SQLAlchemy ou SQL puro)
-│   │   ├── morador.py
-│   │   ├── visitante.py
-│   │   └── acesso.py
-│   ├── routes/              # Rotas/Controllers
-│   │   ├── moradores.py
-│   │   ├── visitantes.py
-│   │   └── dashboard.py
-│   ├── services/            # Lógica de negócio
-│   │   ├── acesso_service.py
-│   │   └── ia_service.py
-│   ├── gui/                 # Interface desktop (CustomTkinter)
-│   ├── templates/           # HTML/Jinja2 (Fase 5 — módulo web)
-│   │   ├── base.html
-│   │   ├── moradores/
-│   │   └── visitantes/
-│   └── static/              # CSS, JS, imagens
-├── database/
-│   ├── schema.sql           # DDL do banco
-│   └── seed.sql             # Dados de teste
-├── tests/                   # Testes automatizados
-├── docs/                    # Documentação
-├── aulas/                   # Materiais de aula
-├── config.py                # Configurações
-├── run.py                   # Ponto de entrada
-└── requirements.txt         # Dependências
+├── src/                             # Codigo-fonte (Clean Architecture)
+│   ├── core/                        # Domain Layer — sem dependencias externas
+│   │   ├── models/                  # Entidades: Morador, Visitante, etc.
+│   │   │   ├── base.py              # ModeloBase (campos comuns)
+│   │   │   ├── morador.py           # Dataclass Morador (16 campos)
+│   │   │   ├── GUIA_MAPEAMENTO.md   # Receita para mapear novas tabelas
+│   │   │   └── __init__.py
+│   │   └── usecase/                 # Casos de uso (futuro)
+│   ├── infra/                       # Infrastructure Layer
+│   │   └── database/
+│   │       └── biometria/           # Futuro: camera, leitor
+│   └── interface/                   # Presentation Layer
+│       ├── gui/                     # CustomTkinter (Fase 1-4)
+│       │   └── main.py
+│       ├── api/                     # Flask Routes (Fase 5+)
+│       └── cli/                     # CLI (opcional)
+├── aulas/                           # Material didatico por aula
+│   └── 2026-04-abril/
+│       ├── aula-01/                 # Setup + Ambiente
+│       ├── aula-02/                 # DBeaver + SQLite + Dominio Python
+│       │   ├── exercicio/
+│       │   │   ├── projeto_portaria_completo.sql  # Schema completo (9 tabelas)
+│       │   │   ├── criar_banco_final.py           # Gera portaria.db
+│       │   │   └── moradores_crud.py              # CRUD com JOINs
+│       │   ├── slides/
+│       │   └── README.md
+│       ├── aula-03/                 # CRUD completo
+│       ├── aula-04/                 # Flask REST API (TODOs)
+│       └── aula-05/                 # GUI CustomTkinter (TODOs)
+├── docs/
+│   ├── requisitos/                  # 5 documentos de requisitos
+│   ├── roadmap/                     # Roadmap visual
+│   └── DESIGN_SYSTEM_SLIDES.md      # Identidade visual dos slides
+├── portaria.db                      # Banco SQLite pronto (gerado por criar_banco_final.py)
+├── tests/                           # Testes automatizados (futuro)
+├── config.py                        # Configuracoes
+├── run.py                           # Ponto de entrada
+└── requirements.txt                 # Dependencias
 ```
 
 ### Separação de Camadas (Hexagonal Simplificado)

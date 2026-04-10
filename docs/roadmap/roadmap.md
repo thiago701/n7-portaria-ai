@@ -1,18 +1,19 @@
 # n7-portaria-ai — Roadmap Visual
 
-> **Atualizado em:** 03/04/2026
+> **Atualizado em:** 09/04/2026
 
 ---
 
-## Visão Geral do Roadmap
+## Visao Geral do Roadmap
 
 ```
 ABR 2026          MAI 2026          JUN 2026          JUL 2026          AGO 2026          SET-OUT 2026
-────────          ────────          ────────          ────────          ────────          ────────────
+--------          --------          --------          --------          --------          ------------
  FASE 1            FASE 2            FASE 3            FASE 4            FASE 5            FASE 6
- FUNDAÇÃO          VISITANTES        INTELIGÊNCIA      INTERATIVIDADE    POLIMENTO          COMERCIAL
+ FUNDACAO          VISITANTES        INTELIGENCIA      INTERATIVIDADE    POLIMENTO          COMERCIAL
 
- ▓▓░░░░░░░░       ░░░░░░░░░░        ░░░░░░░░░░        ░░░░░░░░░░       ░░░░░░░░░░        ░░░░░░░░░░
+ ████░░░░░░       ░░░░░░░░░░        ░░░░░░░░░░        ░░░░░░░░░░       ░░░░░░░░░░        ░░░░░░░░░░
+ 2/5 concl.
 
  Aula 01-05        Aula 06-09        Aula 10-13        Aula 14-17       Aula 18-21        Aula 22-25
  5 encontros       4 encontros       4 encontros       4 encontros      4 encontros       4 encontros
@@ -22,28 +23,31 @@ ABR 2026          MAI 2026          JUN 2026          JUL 2026          AGO 2026
 
 ## Detalhamento por Fase
 
-### FASE 1 — Fundação (Abril 2026) ▓▓░░░
+### FASE 1 — Fundacao (Abril 2026) ████░░░░░░
 
-**Objetivo:** Construir a base do projeto e o primeiro módulo completo (Moradores).
+**Objetivo:** Construir a base do projeto e o primeiro modulo completo (Moradores).
 
 ```
-Semana 1 (03/04)  ──── Setup + Ambiente + Estrutura
-                        Python venv ✦ Git init ✦ VS Code
+Semana 1 (03/04)  [CONCLUIDA] Setup + Ambiente + Estrutura
+                               Python venv, Git init, VS Code, hello_portaria.py
 
-Semana 2 (10/04)  ──── Banco de Dados + SQL
-                        SQLite ✦ CREATE TABLE ✦ INSERT/SELECT
+Semana 2 (09/04)  [CONCLUIDA] Banco de Dados Completo + Dominio Python
+                               DBeaver + SQLite, 9 tabelas, N:N, 2FA, LGPD
+                               criar_banco_final.py, portaria.db, morador.py
+                               moradores_crud.py com JOINs, GUIA_MAPEAMENTO.md
+                               Slides com identidade visual padronizada
 
-Semana 3 (17/04)  ──── CRUD Moradores em Python
-                        sqlite3 ✦ Funções ✦ Validações
+Semana 3 (16/04)  [PENDENTE]  CRUD Moradores Completo
+                               sqlite3, funcoes, validacoes, sistema_portaria.py
 
-Semana 4 (24/04)  ──── API REST com Flask
-                        Rotas ✦ HTTP Methods ✦ JSON
+Semana 4 (23/04)  [PENDENTE]  API REST com Flask
+                               Rotas, HTTP Methods, JSON
 
-Semana 5 (30/04)  ──── Interface Gráfica Desktop
-                        CustomTkinter ✦ Widgets ✦ Eventos
+Semana 5 (30/04)  [PENDENTE]  Interface Grafica Desktop
+                               CustomTkinter, Widgets, Eventos
 ```
 
-**Marco:** Módulo de Moradores 100% funcional (backend + GUI desktop)
+**Marco:** Modulo de Moradores 100% funcional (backend + GUI desktop)
 
 ---
 
