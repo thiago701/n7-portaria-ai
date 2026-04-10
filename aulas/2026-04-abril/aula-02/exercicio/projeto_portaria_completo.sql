@@ -87,7 +87,8 @@ CREATE TABLE moradores (
     -- Gerado pelo leitor, nunca reconstruivel para a digital original.
 
     dt_biometria_validade DATE,
-    -- Validade da biometria. Renovar a cada 2 anos.
+    -- Validade da biometria. Renovar a cada 2 anos. --- 4 a 5 anos
+    --- Se por acusa houver um acidente (tipo corte na digital) que possa produzir uma cicatriz aí diminue o tempo de validade
 
     -- ══════════════════════════════════════════════════════════
     -- CAMPOS LGPD (v8.0) — conformidade com Lei 13.709/2018
