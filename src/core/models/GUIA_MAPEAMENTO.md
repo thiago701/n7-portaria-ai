@@ -84,7 +84,7 @@ Siga a mesma receita para criar estes arquivos:
 | Tabela SQL | Arquivo Python | Dificuldade |
 |------------|---------------|-------------|
 | ✅ moradores | `morador.py` | Feito! (exemplo completo) |
-| ⬜ visitantes | `visitante.py` | Fácil (copie o exemplo acima) |
+| ✅ visitantes | `visitante.py` | Fácil (copie o exemplo acima) |
 | ⬜ funcionarios | `funcionario.py` | Fácil |
 | ✅ residencias | `residencia.py` | Feito! (com campos do Ademilson: tipo_moradia, interfone, observacao) |
 | ⬜ veiculos | `veiculo.py` | Médio |
