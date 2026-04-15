@@ -33,11 +33,22 @@ from datetime import datetime
 # LOCALIZAR A RAIZ DO PROJETO
 # ============================================================================
 # O script está em:  n7-portaria-ai/aulas/2026-04-abril/aula-02/exercicio/
-# A raiz é:          n7-portaria-ai/
-# Subimos 4 níveis para chegar lá.
+# A raiz é:          n7-portaria-ai/  (onde mora a pasta .git)
+#
+# Em vez de contar ".parent" varias vezes (frágil!), subimos a árvore
+# procurando a pasta .git — assim o script funciona mesmo se for movido.
+
+def _achar_raiz_projeto() -> Path:
+    """Sobe a partir do script ate achar a pasta .git (raiz do repositorio)."""
+    atual = Path(__file__).resolve().parent
+    for pasta in [atual, *atual.parents]:
+        if (pasta / ".git").exists():
+            return pasta
+    # Plano B: 4 niveis acima (estrutura conhecida do projeto)
+    return Path(__file__).resolve().parents[4]
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-RAIZ_PROJETO = SCRIPT_DIR.parent.parent.parent.parent   # ← raiz n7-portaria-ai
+RAIZ_PROJETO = _achar_raiz_projeto()
 DB_PATH = RAIZ_PROJETO / "portaria.db"
 
 
