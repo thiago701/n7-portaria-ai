@@ -1,0 +1,52 @@
+============================================================
+  CHECKLIST — MAPEAMENTO TABELA SQL → CLASSE PYTHON
+  n7-portaria-ai | Atualizado em 17/04/2026
+============================================================
+
+BANCO: portaria.db (9 tabelas)
+LOCAL: src/core/models/
+BASE COMPARTILHADA: base.py (ModeloBase, parse_date, parse_datetime)
+
+ #  TABELA SQL               ARQUIVO PYTHON                STATUS     REGISTROS   NOTAS
+--- ----------------------- ------------------------------ ---------- ----------- ------------------------------------------
+ 1  moradores                morador.py                    ✅ FEITO      10       16 campos, CPF, LGPD, biometria, foto
+ 2  residencias              residencia.py                 ✅ FEITO      10       Campos Ademilson: tipo_moradia, interfone, obs
+ 3  morador_residencia       morador_residencia.py         ✅ FEITO      11       Junction table N:N (2 FKs), historico
+ 4  visitantes               visitante.py                  ✅ FEITO       8       Bloqueio, janela validade, tipo_documento
+ 5  funcionarios             funcionario.py                ✅ FEITO       5       Senha SHA-256, cargos, login unico
+ 6  veiculos                 veiculo.py                    ✅ FEITO       5       3 FKs mutuamente exclusivas (dono)
+ 7  acessos                  acesso.py                     ✅ FEITO      10       2FA (senha+digital+facial), log imutavel
+ 8  config_acesso_morador    config_acesso_morador.py      ✅ FEITO       5       Politica 1:1 por morador, 1 ou 2 fatores
+ 9  assinatura_condominio    assinatura_condominio.py      ✅ FEITO       1       Contrato + vigencia + status
+
+============================================================
+  RESUMO: 9/9 TABELAS MAPEADAS (100%)
+============================================================
+
+FUNCIONALIDADES COMUNS A TODOS OS MODELOS:
+  [✅] @dataclass com campos tipados
+  [✅] Comentarios didaticos explicando cada campo
+  [✅] __post_init__() com validacoes
+  [✅] from_db_row(row) — converte linha do banco → objeto Python
+  [✅] to_db_dict() — converte objeto Python → dicionario para INSERT
+  [✅] resumo() — exibicao legivel de uma linha
+  [✅] Bloco __main__ com self-test executavel
+  [✅] Usa parse_date/parse_datetime do base.py (sem duplicacao)
+
+VALIDACOES IMPLEMENTADAS POR MODELO:
+  moradores           → CPF (11 digitos), email (@.)
+  residencias         → tipo_moradia (apartamento/casa/comercial/outro)
+  morador_residencia  → tipo_morador, IDs positivos, dt_fim >= dt_inicio
+  visitantes          → tipo_documento, datas, bloqueado precisa motivo
+  funcionarios        → CPF, cargo, senha_hash (64 chars)
+  veiculos            → placa (>=7 chars), exatamente 1 proprietario
+  acessos             → tipo_acesso, pelo menos 1 auth (2FA)
+  config_acesso       → fatores (1 ou 2), pelo menos 1 tipo, 2FA precisa 2 tipos
+  assinatura          → status, dt_vigencia_fim >= dt_vigencia_inicio
+
+PROXIMOS PASSOS SUGERIDOS:
+  [ ] Criar repositorios (src/infra/repositories/) para cada modelo
+  [ ] Implementar CRUD (Create, Read, Update, Delete/soft-delete)
+  [ ] Adicionar testes unitarios com pytest
+  [ ] Criar servicos (src/core/services/) com regras de negocio
+  [ ] Integrar com a GUI (src/interface/gui/)

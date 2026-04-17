@@ -87,6 +87,8 @@ from dataclasses import dataclass
 from datetime import datetime, date
 from typing import Optional
 
+from src.core.models.base import parse_date, parse_datetime
+
 
 # ============================================================
 # TIPOS VALIDOS DE MORADOR NO VINCULO
@@ -256,11 +258,11 @@ class MoradorResidencia:
             morador_id=row["morador_id"],
             residencia_id=row["residencia_id"],
             tipo_morador=row["tipo_morador"] or "proprietario",
-            dt_inicio=_parse_date(row["dt_inicio"]),
-            dt_fim=_parse_date(row["dt_fim"]) if row["dt_fim"] else None,
+            dt_inicio=parse_date(row["dt_inicio"]),
+            dt_fim=parse_date(row["dt_fim"]) if row["dt_fim"] else None,
             ativo=bool(row["ativo"]),
             correlation_id=row["correlation_id"],
-            dt_criado_em=_parse_datetime(row["dt_criado_em"]),
+            dt_criado_em=parse_datetime(row["dt_criado_em"]),
         )
 
     # ──────────────────────────────────────────────────────
@@ -316,30 +318,6 @@ class MoradorResidencia:
             f"Morador #{self.morador_id} → Residencia #{self.residencia_id} | "
             f"{self.tipo_morador} | {desde} | {self.status_texto}"
         )
-
-
-# ──────────────────────────────────────────────────────────
-# FUNCOES AUXILIARES (privadas ao modulo)
-# ──────────────────────────────────────────────────────────
-
-def _parse_date(valor) -> Optional[date]:
-    """Converte string 'YYYY-MM-DD' para date."""
-    if valor is None:
-        return None
-    try:
-        return datetime.strptime(str(valor), "%Y-%m-%d").date()
-    except (ValueError, TypeError):
-        return None
-
-
-def _parse_datetime(valor) -> Optional[datetime]:
-    """Converte string 'YYYY-MM-DD HH:MM:SS' para datetime."""
-    if valor is None:
-        return None
-    try:
-        return datetime.strptime(str(valor), "%Y-%m-%d %H:%M:%S")
-    except (ValueError, TypeError):
-        return None
 
 
 # ──────────────────────────────────────────────────────────
