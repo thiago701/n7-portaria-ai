@@ -85,10 +85,10 @@ Siga a mesma receita para criar estes arquivos:
 |------------|---------------|-------------|
 | ✅ moradores | `morador.py` | Feito! (exemplo completo) |
 | ✅ visitantes | `visitante.py` | Fácil (copie o exemplo acima) |
-| ⬜ funcionarios | `funcionario.py` | Fácil |
+| ✅ funcionarios | `funcionario.py` | Fácil |
 | ✅ residencias | `residencia.py` | Feito! (com campos do Ademilson: tipo_moradia, interfone, observacao) |
-| ⬜ veiculos | `veiculo.py` | Médio |
-| ✅ morador_residencia | `morador_residencia.py` | Feito! (junction table N:N com 2 FKs) |
-
+| ✅ veiculos | `veiculo.py` | Médio |
+  ✅ morador_residencia | `morador_residencia.py` | Feito! (junction table N:N com 2 FKs)
+  ✅ cargo | `cargo.py` | Feito!  | 
 **Dica:** Abra o `projeto_portaria_completo.sql`, encontre o CREATE TABLE
 da tabela que vai mapear, e siga os passos 1-2-3 acima!
