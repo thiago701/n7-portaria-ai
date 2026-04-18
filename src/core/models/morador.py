@@ -80,6 +80,11 @@ class Morador:
     # Estes devem ser passados ao criar o objeto.
     # ──────────────────────────────────────────────────────
 
+    id: Optional[int] = None
+    # SQL: id INTEGER PRIMARY KEY AUTOINCREMENT
+    # Gerado automaticamente pelo banco ao inserir.
+    # Quando criamos um Morador novo, id ainda não existe (None).
+
     nome: str
     # SQL: nome TEXT NOT NULL
     # Nome completo do morador. Obrigatório.
@@ -99,10 +104,7 @@ class Morador:
     # Estes têm valor padrão None — não precisa passar.
     # ──────────────────────────────────────────────────────
 
-    id: Optional[int] = None
-    # SQL: id INTEGER PRIMARY KEY AUTOINCREMENT
-    # Gerado automaticamente pelo banco ao inserir.
-    # Quando criamos um Morador novo, id ainda não existe (None).
+  
 
     telefone: Optional[str] = None
     # SQL: telefone TEXT
@@ -133,7 +135,7 @@ class Morador:
 
     dt_biometria_validade: Optional[date] = None
     # SQL: dt_biometria_validade DATE
-    # Renovar a cada 2 anos.
+    # Renovar a cada 6 anos.
 
     # ── LGPD (Lei Geral de Proteção de Dados) ────────────
 
