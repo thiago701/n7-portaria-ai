@@ -77,18 +77,23 @@ print(visitante.nome)       # Carlos Entregador
 print(visitante.bloqueado)  # False
 ```
 
-## Tabelas para Você Mapear Esta Semana
+## Mapeamento Completo — 9/9 Tabelas
 
-Siga a mesma receita para criar estes arquivos:
+Todas as 9 tabelas do `projeto_portaria_completo.sql` estão mapeadas!
 
-| Tabela SQL | Arquivo Python | Dificuldade |
-|------------|---------------|-------------|
-| ✅ moradores | `morador.py` | Feito! (exemplo completo) |
-| ✅ visitantes | `visitante.py` | Fácil (copie o exemplo acima) |
-| ✅ funcionarios | `funcionario.py` | Fácil |
-| ✅ residencias | `residencia.py` | Feito! (com campos do Ademilson: tipo_moradia, interfone, observacao) |
-| ✅ veiculos | `veiculo.py` | Médio |
-  ✅ morador_residencia | `morador_residencia.py` | Feito! (junction table N:N com 2 FKs)
-  ✅ cargo | `cargo.py` | Feito!  | 
-**Dica:** Abra o `projeto_portaria_completo.sql`, encontre o CREATE TABLE
-da tabela que vai mapear, e siga os passos 1-2-3 acima!
+| Tabela SQL | Arquivo Python | Status |
+|------------|---------------|--------|
+| ✅ moradores | `morador.py` | Feito! (16 campos, CPF + LGPD + biometria) |
+| ✅ residencias | `residencia.py` | Feito! (campos do Ademilson: tipo_moradia, interfone, observacao) |
+| ✅ morador_residencia | `morador_residencia.py` | Feito! (junction table N:N com 2 FKs) |
+| ✅ visitantes | `visitante.py` | Feito! (bloqueio + janela de validade) |
+| ✅ funcionarios | `funcionario.py` | Feito! (senha SHA-256, cargos, login) |
+| ✅ veiculos | `veiculo.py` | Feito! (3 FKs mutuamente exclusivas) |
+| ✅ acessos | `acesso.py` | Feito! (2FA: senha + digital + facial) |
+| ✅ config_acesso_morador | `config_acesso_morador.py` | Feito! (política 1:1 por morador) |
+| ✅ assinatura_condominio | `assinatura_condominio.py` | Feito! (contrato + vigência) |
+
+**Todos usam funções compartilhadas do `base.py`** (parse_date, parse_datetime).
+
+**Para estudar:** abra cada arquivo `.py` e leia os comentários — eles
+explicam o mapeamento SQL → Python passo a passo!

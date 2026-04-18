@@ -33,6 +33,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, date
 from typing import Optional
 
+from src.core.models.base import parse_date, parse_datetime
+
 
 @dataclass
 class Morador:
@@ -204,17 +206,17 @@ class Morador:
             cpf=row["cpf"],
             telefone=row["telefone"],
             email=row["email"],
-            dt_nascimento=_parse_date(row["dt_nascimento"]) if row["dt_nascimento"] else None,
+            dt_nascimento=parse_date(row["dt_nascimento"]) if row["dt_nascimento"] else None,
             foto=row["foto"],
-            dt_foto_validade=_parse_date(row["dt_foto_validade"]) if row["dt_foto_validade"] else None,
+            dt_foto_validade=parse_date(row["dt_foto_validade"]) if row["dt_foto_validade"] else None,
             biometria=row["biometria"],
-            dt_biometria_validade=_parse_date(row["dt_biometria_validade"]) if row["dt_biometria_validade"] else None,
+            dt_biometria_validade=parse_date(row["dt_biometria_validade"]) if row["dt_biometria_validade"] else None,
             termos_lgpd=row["termos_lgpd"],
-            dt_aceite_lgpd=_parse_datetime(row["dt_aceite_lgpd"]) if row["dt_aceite_lgpd"] else None,
+            dt_aceite_lgpd=parse_datetime(row["dt_aceite_lgpd"]) if row["dt_aceite_lgpd"] else None,
             ativo=bool(row["ativo"]),
             correlation_id=row["correlation_id"],
-            dt_criado_em=_parse_datetime(row["dt_criado_em"]) if row["dt_criado_em"] else None,
-            dt_atualizado_em=_parse_datetime(row["dt_atualizado_em"]) if row["dt_atualizado_em"] else None,
+            dt_criado_em=parse_datetime(row["dt_criado_em"]) if row["dt_criado_em"] else None,
+            dt_atualizado_em=parse_datetime(row["dt_atualizado_em"]) if row["dt_atualizado_em"] else None,
         )
 
     def to_db_dict(self) -> dict:
@@ -280,26 +282,6 @@ class Morador:
             f"Tel: {self.telefone or '—'} | "
             f"{self.status_texto}"
         )
-
-
-# ──────────────────────────────────────────────────────────
-# FUNÇÕES AUXILIARES (privadas ao módulo)
-# ──────────────────────────────────────────────────────────
-
-def _parse_date(valor: str) -> Optional[date]:
-    """Converte string 'YYYY-MM-DD' para date."""
-    try:
-        return datetime.strptime(str(valor), "%Y-%m-%d").date()
-    except (ValueError, TypeError):
-        return None
-
-
-def _parse_datetime(valor: str) -> Optional[datetime]:
-    """Converte string 'YYYY-MM-DD HH:MM:SS' para datetime."""
-    try:
-        return datetime.strptime(str(valor), "%Y-%m-%d %H:%M:%S")
-    except (ValueError, TypeError):
-        return None
 
 
 # ──────────────────────────────────────────────────────────

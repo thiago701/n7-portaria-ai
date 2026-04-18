@@ -50,6 +50,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
+from src.core.models.base import parse_datetime
+
 
 # ============================================================
 # TIPOS VALIDOS DE MORADIA
@@ -224,8 +226,8 @@ class Residencia:
             observacao=row["observacao"],
             ativo=bool(row["ativo"]),
             correlation_id=row["correlation_id"],
-            dt_criado_em=_parse_datetime(row["dt_criado_em"]),
-            dt_atualizado_em=_parse_datetime(row["dt_atualizado_em"]),
+            dt_criado_em=parse_datetime(row["dt_criado_em"]),
+            dt_atualizado_em=parse_datetime(row["dt_atualizado_em"]),
         )
 
     # ──────────────────────────────────────────────────────
@@ -296,20 +298,6 @@ class Residencia:
             f"[{self.id or 'NOVA'}] {self.descricao_curta}"
             f"{inter} | {self.status_texto}"
         )
-
-
-# ──────────────────────────────────────────────────────────
-# FUNCOES AUXILIARES (privadas ao modulo)
-# ──────────────────────────────────────────────────────────
-
-def _parse_datetime(valor) -> Optional[datetime]:
-    """Converte string 'YYYY-MM-DD HH:MM:SS' para datetime."""
-    if valor is None:
-        return None
-    try:
-        return datetime.strptime(str(valor), "%Y-%m-%d %H:%M:%S")
-    except (ValueError, TypeError):
-        return None
 
 
 # ──────────────────────────────────────────────────────────

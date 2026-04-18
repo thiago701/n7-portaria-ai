@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portaria Quest — Jogo do Mapeamento de Dominio</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
+
+  :root {
+    --navy: #0C4A6E;
+    --blue: #0369A1;
+    --sky: #38BDF8;
+    --green: #22C55E;
+    --green-dark: #16A34A;
+    --bg: #F0F9FF;
+    --card: #FFFFFF;
+    --text: #0C4A6E;
+    --muted: #64748B;
+    --border: #BAE6FD;
+    --error: #EF4444;
+    --gold: #F59E0B;
+    --gold-light: #FEF3C7;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 18px;
+    line-height: 1.6;
+  }
+
+  .app {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  /* HEADER */
+  .header {
+    text-align: center;
+    padding: 30px 20px;
+    background: linear-gradient(135deg, var(--navy), var(--blue));
+    border-radius: 20px;
+    color: white;
+    margin-bottom: 24px;
+  }
+  .header h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 8px; }
+  .header p { font-size: 1.1rem; opacity: 0.9; }
+
+  /* PROGRESS BAR */
+  .progress-bar {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 16px 24px;
+    margin-bottom: 24px;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .progress-bar .label { font-weight: 700; white-space: nowrap; }
+  .progress-track {
+    flex: 1;
+    height: 20px;
+    background: #E0F2FE;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), var(--sky));
+    border-radius: 10px;
+    transition: width 0.5s ease;
+  }
+  .progress-text { font-weight: 700; color: var(--blue); min-width: 50px; text-align: right; }
+
+  /* CARDS */
+  .card {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 32px;
+    margin-bottom: 24px;
+    border: 2px solid var(--border);
+    box-shadow: 0 4px 12px rgba(3, 105, 161, 0.08);
+  }
+  .card h2 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--navy);
+    margin-bottom: 8px;
+  }
+  .card .subtitle {
+    color: var(--muted);
+    font-size: 1rem;
+    margin-bottom: 24px;
+  }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-block;
+    padding: 16px 32px;
+    border: none;
+    border-radius: 14px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+  .btn:active { transform: translateY(0); }
+  .btn-primary { background: var(--blue); color: white; }
+  .btn-success { background: var(--green); color: white; }
+  .btn-gold { background: var(--gold); color: white; }
+  .btn-outline { background: transparent; color: var(--blue); border: 2px solid var(--blue); }
+  .btn-lg { padding: 20px 48px; font-size: 1.3rem; }
+  .btn-block { display: block; width: 100%; }
+
+  /* MEMORY GAME */
+  .memory-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .memory-card {
+    aspect-ratio: 1;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 10px;
+    text-align: center;
+    line-height: 1.3;
+    min-height: 100px;
+    user-select: none;
+  }
+  .memory-card.hidden {
+    background: linear-gradient(135deg, var(--blue), var(--navy));
+    color: white;
+  }
+  .memory-card.hidden::after { content: '?'; font-size: 2rem; }
+  .memory-card.revealed-sql {
+    background: #FEF3C7;
+    color: #92400E;
+    border: 3px solid var(--gold);
+  }
+  .memory-card.revealed-py {
+    background: #DCFCE7;
+    color: #166534;
+    border: 3px solid var(--green);
+  }
+  .memory-card.matched {
+    opacity: 0.5;
+    transform: scale(0.95);
+    pointer-events: none;
+  }
+
+  /* TYPE TRANSLATOR */
+  .type-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 16px 0;
+    padding: 16px;
+    background: #F8FAFC;
+    border-radius: 14px;
+    border: 2px solid transparent;
+    transition: border-color 0.3s;
+  }
+  .type-row.correct { border-color: var(--green); background: #F0FDF4; }
+  .type-row.wrong { border-color: var(--error); background: #FEF2F2; }
+  .sql-badge {
+    background: #1E293B;
+    color: #FDE68A;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-family: monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    min-width: 200px;
+    text-align: center;
+  }
+  .arrow { font-size: 1.5rem; color: var(--muted); }
+  .options-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .opt-btn {
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 2px solid var(--border);
+    background: white;
+    font-family: monospace;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text);
+  }
+  .opt-btn:hover { border-color: var(--blue); background: #F0F9FF; }
+  .opt-btn.selected { border-color: var(--blue); background: #DBEAFE; }
+  .opt-btn.correct-answer { border-color: var(--green); background: #DCFCE7; color: #166534; }
+  .opt-btn.wrong-answer { border-color: var(--error); background: #FEE2E2; color: #991B1B; text-decoration: line-through; }
+
+  /* BUILD CLASS GAME */
+  .field-slot {
+    padding: 14px 20px;
+    margin: 8px 0;
+    border-radius: 12px;
+    border: 2px dashed var(--border);
+    background: #F8FAFC;
+    font-family: monospace;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 54px;
+  }
+  .field-slot.placed { border-style: solid; border-color: var(--blue); background: #EFF6FF; }
+  .field-slot.correct-slot { border-color: var(--green); background: #F0FDF4; }
+  .field-slot.wrong-slot { border-color: var(--error); background: #FEF2F2; }
+
+  .field-chip {
+    display: inline-block;
+    padding: 12px 18px;
+    margin: 6px;
+    border-radius: 12px;
+    background: var(--card);
+    border: 2px solid var(--border);
+    font-family: monospace;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .field-chip:hover { border-color: var(--blue); transform: translateY(-2px); }
+  .field-chip.used { opacity: 0.3; pointer-events: none; }
+
+  .chip-pool { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0; justify-content: center; }
+
+  /* QUIZ */
+  .quiz-question {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+  .quiz-option {
+    display: block;
+    width: 100%;
+    padding: 18px 24px;
+    margin: 10px 0;
+    border-radius: 14px;
+    border: 2px solid var(--border);
+    background: white;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+    color: var(--text);
+  }
+  .quiz-option:hover { border-color: var(--blue); background: #F0F9FF; }
+  .quiz-option.correct-opt { border-color: var(--green); background: #DCFCE7; color: #166534; }
+  .quiz-option.wrong-opt { border-color: var(--error); background: #FEE2E2; color: #991B1B; }
+
+  /* FEEDBACK */
+  .feedback {
+    padding: 16px 24px;
+    border-radius: 14px;
+    margin: 16px 0;
+    font-weight: 700;
+    font-size: 1.1rem;
+    text-align: center;
+  }
+  .feedback.success { background: #DCFCE7; color: #166534; border: 2px solid #86EFAC; }
+  .feedback.error { background: #FEE2E2; color: #991B1B; border: 2px solid #FCA5A5; }
+  .feedback.info { background: #DBEAFE; color: #1E40AF; border: 2px solid #93C5FD; }
+
+  /* SCORE */
+  .score-display {
+    text-align: center;
+    padding: 40px;
+  }
+  .score-big {
+    font-size: 4rem;
+    font-weight: 800;
+    color: var(--green-dark);
+    line-height: 1;
+  }
+  .score-label { font-size: 1.2rem; color: var(--muted); margin-top: 8px; }
+
+  .badge-grid { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin: 24px 0; }
+  .badge {
+    padding: 12px 20px;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 1rem;
+    text-align: center;
+  }
+  .badge.earned { background: var(--gold-light); color: #92400E; border: 2px solid var(--gold); }
+  .badge.locked { background: #F1F5F9; color: #94A3B8; border: 2px dashed #CBD5E1; }
+
+  /* CODE BLOCK */
+  .code-block {
+    background: #1E293B;
+    color: #E2E8F0;
+    padding: 20px;
+    border-radius: 14px;
+    font-family: monospace;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    overflow-x: auto;
+    margin: 16px 0;
+  }
+  .code-block .kw { color: #C084FC; }
+  .code-block .tp { color: #67E8F9; }
+  .code-block .str { color: #86EFAC; }
+  .code-block .cm { color: #64748B; }
+  .code-block .dec { color: #FBBF24; }
+
+  /* HELPERS */
+  .text-center { text-align: center; }
+  .mt-16 { margin-top: 16px; }
+  .mt-24 { margin-top: 24px; }
+  .mb-16 { margin-bottom: 16px; }
+  .gap-12 { gap: 12px; }
+  .flex-center { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; }
+
+  .hint-box {
+    background: var(--gold-light);
+    border: 2px solid var(--gold);
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-size: 1rem;
+    color: #92400E;
+  }
+
+  .phase-icon {
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem;
+    margin: 0 auto 16px;
+  }
+
+  @media (max-width: 600px) {
+    .memory-grid { grid-template-columns: repeat(3, 1fr); }
+    .sql-badge { min-width: auto; font-size: 0.85rem; }
+    .type-row { flex-direction: column; }
+    body { font-size: 16px; }
+    .header h1 { font-size: 1.6rem; }
+    .btn-lg { padding: 16px 32px; font-size: 1.1rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script type="text/babel">
+
+const { useState, useEffect, useCallback, useRef } = React;
+
+// ═══════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════
+
+const MEMORY_PAIRS = [
+  { sql: "TEXT NOT NULL", py: "str", hint: "Texto obrigatorio" },
+  { sql: "TEXT (aceita NULL)", py: "Optional[str] = None", hint: "Texto opcional" },
+  { sql: "INTEGER PRIMARY KEY AUTO", py: "Optional[int] = None", hint: "ID auto-gerado pelo banco" },
+  { sql: "BOOLEAN DEFAULT 1", py: "bool = True", hint: "Verdadeiro/Falso" },
+  { sql: "BLOB", py: "Optional[bytes] = None", hint: "Dados binarios (foto, PDF)" },
+  { sql: "DATETIME", py: "Optional[datetime] = None", hint: "Data e hora" },
+];
+
+const TYPE_QUESTIONS = [
+  { sql: "TEXT NOT NULL", correct: "str", options: ["str", "Optional[str]", "int", "bool"] },
+  { sql: "INTEGER PRIMARY KEY AUTO", correct: "Optional[int] = None", options: ["int", "Optional[int] = None", "str", "float"] },
+  { sql: "BOOLEAN DEFAULT 0", correct: "bool = False", options: ["bool = False", "int = 0", "str = '0'", "Optional[bool]"] },
+  { sql: "TEXT (pode ser NULL)", correct: "Optional[str] = None", options: ["str", "Optional[str] = None", "None", "str = ''"] },
+  { sql: "DATE (aceita NULL)", correct: "Optional[date] = None", options: ["str", "Optional[date] = None", "int", "datetime"] },
+  { sql: "BLOB", correct: "Optional[bytes] = None", options: ["str", "Optional[bytes] = None", "list", "dict"] },
+];
+
+const BUILD_FIELDS_CORRECT = [
+  { code: "id: int", label: "id: int", required: true },
+  { code: "nome: str", label: "nome: str", required: true },
+  { code: "cpf: str", label: "cpf: str", required: true },
+  { code: "correlation_id: str", label: "correlation_id: str", required: true },
+  { code: "telefone: Optional[str] = None", label: "telefone: Optional[str] = None", required: false },
+  { code: "ativo: bool = True", label: "ativo: bool = True", required: false },
+];
+
+const QUIZ_QUESTIONS = [
+  {
+    q: "No mapeamento SQL para Python, cada TABELA vira o que?",
+    options: ["Uma variavel", "Uma classe (@dataclass)", "Uma funcao", "Um arquivo .sql"],
+    correct: 1,
+    explain: "Cada tabela vira uma classe Python. Ex: tabela moradores vira class Morador."
+  },
+  {
+    q: "Cada COLUNA da tabela SQL vira o que na classe Python?",
+    options: ["Um metodo", "Um arquivo", "Um atributo", "Uma funcao"],
+    correct: 2,
+    explain: "Cada coluna vira um atributo da classe. Ex: coluna 'nome' vira self.nome."
+  },
+  {
+    q: "O que significa @dataclass em cima de uma classe?",
+    options: [
+      "Que a classe e perigosa",
+      "Que o Python gera __init__ automaticamente",
+      "Que a classe nao pode ser usada",
+      "Que precisa instalar uma biblioteca"
+    ],
+    correct: 1,
+    explain: "@dataclass e a 'etiqueta magica' que diz ao Python: gere o __init__, __repr__ e __eq__ pra mim!"
+  },
+  {
+    q: "Qual a regra de ouro da ORDEM dos campos em um @dataclass?",
+    options: [
+      "Ordem alfabetica",
+      "Opcionais primeiro, obrigatorios depois",
+      "Obrigatorios primeiro, opcionais depois",
+      "Tanto faz a ordem"
+    ],
+    correct: 2,
+    explain: "Campos SEM valor padrao (obrigatorios) vem ANTES dos campos COM valor padrao (opcionais). Trocar da erro!"
+  },
+  {
+    q: "Quando usamos Optional[str] = None em Python?",
+    options: [
+      "Quando o campo e obrigatorio",
+      "Quando o campo aceita NULL no SQL (pode ficar vazio)",
+      "Quando o campo e um numero",
+      "Nunca — e uma sintaxe invalida"
+    ],
+    correct: 1,
+    explain: "Optional significa que o campo PODE ficar vazio (None). No SQL e quando a coluna aceita NULL."
+  },
+  {
+    q: "No nosso projeto, 'ativo: bool = True' representa qual conceito do SQL?",
+    options: [
+      "TEXT NOT NULL",
+      "INTEGER PRIMARY KEY",
+      "BOOLEAN DEFAULT 1",
+      "BLOB"
+    ],
+    correct: 2,
+    explain: "BOOLEAN DEFAULT 1 no SQL vira bool = True no Python. O 1 e True, o 0 e False."
+  },
+  {
+    q: "Por que usamos id: Optional[int] = None e nao id: int?",
+    options: [
+      "Porque o id e sempre zero",
+      "Porque o id nao existe ate o banco gerar (AUTOINCREMENT)",
+      "Porque o id e uma string",
+      "Porque o Python nao aceita int"
+    ],
+    correct: 1,
+    explain: "Quando criamos um objeto NOVO, ele ainda nao tem id — o banco gera depois do INSERT. Por isso id comeca como None."
+  },
+  {
+    q: "O que faz o metodo from_db_row() nos nossos models?",
+    options: [
+      "Deleta uma linha do banco",
+      "Converte uma linha do banco em um objeto Python",
+      "Cria uma tabela nova",
+      "Imprime os dados na tela"
+    ],
+    correct: 1,
+    explain: "from_db_row() pega uma linha do SQLite (dicionario) e transforma em um objeto Python (ex: Morador)."
+  },
+];
+
+// ═══════════════════════════════════════════
+// UTILITY
+// ═══════════════════════════════════════════
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ═══════════════════════════════════════════
+// COMPONENTS
+// ═══════════════════════════════════════════
+
+function Header() {
+  return (
+    <div className="header">
+      <h1>Portaria Quest</h1>
+      <p>O Jogo do Mapeamento de Dominio</p>
+    </div>
+  );
+}
+
+function ProgressBar({ phase, total }) {
+  const pct = Math.round((phase / total) * 100);
+  return (
+    <div className="progress-bar">
+      <span className="label">Progresso:</span>
+      <div className="progress-track">
+        <div className="progress-fill" style={{ width: pct + '%' }}></div>
+      </div>
+      <span className="progress-text">{phase}/{total}</span>
+    </div>
+  );
+}
+
+function Feedback({ type, children }) {
+  if (!children) return null;
+  return <div className={`feedback ${type}`}>{children}</div>;
+}
+
+// ─── WELCOME ────────────────────────────────
+function Welcome({ onStart }) {
+  return (
+    <div className="card text-center">
+      <div className="phase-icon" style={{ background: '#DBEAFE', color: '#0369A1' }}>
+        <span style={{fontSize:'2rem'}}>&#127919;</span>
+      </div>
+      <h2>Bem-vindo, Ademilson!</h2>
+      <p className="subtitle">
+        Hoje vamos revisar o mapeamento SQL → Python de um jeito diferente: jogando!
+      </p>
+      <div className="hint-box">
+        <strong>Como funciona:</strong> Sao 4 fases. Cada uma pratica um conceito
+        do ebook que voce ja leu. Nao precisa decorar nada — o jogo te ajuda a lembrar!
+      </div>
+      <div className="mt-24">
+        <button className="btn btn-primary btn-lg" onClick={onStart}>
+          Iniciar o Jogo
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── PHASE 1: MEMORY GAME ───────────────────
+function MemoryGame({ onComplete }) {
+  const pairs = MEMORY_PAIRS.slice(0, 6);
+  const [cards, setCards] = useState(() => {
+    const all = [];
+    pairs.forEach((p, i) => {
+      all.push({ id: i * 2, pairId: i, text: p.sql, type: 'sql', matched: false });
+      all.push({ id: i * 2 + 1, pairId: i, text: p.py, type: 'py', matched: false });
+    });
+    return shuffle(all);
+  });
+  const [flipped, setFlipped] = useState([]);
+  const [matches, setMatches] = useState(0);
+  const [attempts, setAttempts] = useState(0);
+  const [fb, setFb] = useState(null);
+  const lockRef = useRef(false);
+
+  const handleClick = (idx) => {
+    if (lockRef.current) return;
+    if (cards[idx].matched) return;
+    if (flipped.includes(idx)) return;
+    if (flipped.length >= 2) return;
+
+    const newFlipped = [...flipped, idx];
+    setFlipped(newFlipped);
+
+    if (newFlipped.length === 2) {
+      lockRef.current = true;
+      setAttempts(a => a + 1);
+      const c1 = cards[newFlipped[0]];
+      const c2 = cards[newFlipped[1]];
+
+      if (c1.pairId === c2.pairId && c1.type !== c2.type) {
+        const hint = pairs[c1.pairId].hint;
+        setFb({ type: 'success', msg: `Par encontrado! ${hint}` });
+        setTimeout(() => {
+          setCards(prev => prev.map(c =>
+            c.pairId === c1.pairId ? { ...c, matched: true } : c
+          ));
+          setMatches(m => m + 1);
+          setFlipped([]);
+          lockRef.current = false;
+        }, 800);
+      } else {
+        setFb({ type: 'error', msg: 'Nao e par. Tente de novo!' });
+        setTimeout(() => {
+          setFlipped([]);
+          lockRef.current = false;
+          setFb(null);
+        }, 1200);
+      }
+    }
+  };
+
+  const done = matches === pairs.length;
+
+  useEffect(() => {
+    if (done) {
+      setFb({ type: 'success', msg: `Parabens! Todos os ${pairs.length} pares encontrados em ${attempts} tentativas!` });
+    }
+  }, [done]);
+
+  return (
+    <div className="card">
+      <div className="phase-icon" style={{ background: '#FEF3C7' }}>
+        <span style={{fontSize:'2rem'}}>&#129504;</span>
+      </div>
+      <h2>Fase 1 — Jogo da Memoria</h2>
+      <p className="subtitle">
+        Encontre os pares: cada conceito SQL tem um equivalente Python.
+        Clique em duas cartas para virar!
+      </p>
+
+      <div className="memory-grid">
+        {cards.map((c, idx) => {
+          const isFlipped = flipped.includes(idx);
+          const cls = c.matched
+            ? `memory-card matched revealed-${c.type}`
+            : isFlipped
+              ? `memory-card revealed-${c.type}`
+              : 'memory-card hidden';
+          return (
+            <div key={c.id} className={cls} onClick={() => handleClick(idx)}>
+              {(isFlipped || c.matched) ? c.text : ''}
+            </div>
+          );
+        })}
+      </div>
+
+      {fb && <Feedback type={fb.type}>{fb.msg}</Feedback>}
+      <p className="text-center" style={{color:'#64748B'}}>
+        Tentativas: {attempts} | Pares: {matches}/{pairs.length}
+      </p>
+
+      {done && (
+        <div className="text-center mt-24">
+          <button className="btn btn-success btn-lg" onClick={() => onComplete(attempts <= pairs.length + 3 ? 3 : attempts <= pairs.length + 6 ? 2 : 1)}>
+            Proxima Fase →
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── PHASE 2: TYPE TRANSLATOR ───────────────
+function TypeTranslator({ onComplete }) {
+  const [questions] = useState(() => shuffle(TYPE_QUESTIONS).slice(0, 6));
+  const [answers, setAnswers] = useState({});
+  const [checked, setChecked] = useState(false);
+  const [score, setScore] = useState(0);
+
+  const handleSelect = (qi, opt) => {
+    if (checked) return;
+    setAnswers(prev => ({ ...prev, [qi]: opt }));
+  };
+
+  const handleCheck = () => {
+    let s = 0;
+    questions.forEach((q, i) => {
+      if (answers[i] === q.correct) s++;
+    });
+    setScore(s);
+    setChecked(true);
+  };
+
+  const allAnswered = Object.keys(answers).length === questions.length;
+
+  return (
+    <div className="card">
+      <div className="phase-icon" style={{ background: '#DBEAFE' }}>
+        <span style={{fontSize:'2rem'}}>&#127760;</span>
+      </div>
+      <h2>Fase 2 — Tradutor de Tipos</h2>
+      <p className="subtitle">
+        Para cada tipo SQL, escolha a traducao correta em Python.
+        Use o "dicionario de bolso" que voce aprendeu no ebook!
+      </p>
+
+      {questions.map((q, qi) => (
+        <div key={qi} className={`type-row ${checked ? (answers[qi] === q.correct ? 'correct' : 'wrong') : ''}`}>
+          <div className="sql-badge">{q.sql}</div>
+          <span className="arrow">→</span>
+          <div className="options-group">
+            {q.options.map(opt => {
+              let cls = 'opt-btn';
+              if (answers[qi] === opt) cls += ' selected';
+              if (checked && opt === q.correct) cls += ' correct-answer';
+              if (checked && answers[qi] === opt && opt !== q.correct) cls += ' wrong-answer';
+              return (
+                <button key={opt} className={cls} onClick={() => handleSelect(qi, opt)}>
+                  {opt}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+
+      {!checked && (
+        <div className="text-center mt-24">
+          <button
+            className={`btn btn-primary btn-lg ${!allAnswered ? '' : ''}`}
+            onClick={handleCheck}
+            disabled={!allAnswered}
+            style={{ opacity: allAnswered ? 1 : 0.5 }}
+          >
+            Verificar Respostas
+          </button>
+        </div>
+      )}
+
+      {checked && (
+        <>
+          <Feedback type={score >= 5 ? 'success' : score >= 3 ? 'info' : 'error'}>
+            Voce acertou {score} de {questions.length}!
+            {score >= 5 ? ' Excelente, tradutor profissional!' : score >= 3 ? ' Bom trabalho! Continue praticando.' : ' Sem problema — volte ao ebook e tente de novo!'}
+          </Feedback>
+          <div className="text-center mt-16">
+            <button className="btn btn-success btn-lg" onClick={() => onComplete(score >= 5 ? 3 : score >= 3 ? 2 : 1)}>
+              Proxima Fase →
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── PHASE 3: BUILD THE CLASS ───────────────
+function BuildClass({ onComplete }) {
+  const [available] = useState(() => shuffle(BUILD_FIELDS_CORRECT));
+  const [slots, setSlots] = useState(BUILD_FIELDS_CORRECT.map(() => null));
+  const [checked, setChecked] = useState(false);
+  const [score, setScore] = useState(0);
+  const nextEmpty = slots.findIndex(s => s === null);
+
+  const handlePick = (field) => {
+    if (checked) return;
+    if (nextEmpty === -1) return;
+    if (slots.some(s => s && s.code === field.code)) return;
+    const newSlots = [...slots];
+    newSlots[nextEmpty] = field;
+    setSlots(newSlots);
+  };
+
+  const handleUndo = () => {
+    if (checked) return;
+    const lastFilled = [...slots].reverse().findIndex(s => s !== null);
+    if (lastFilled === -1) return;
+    const idx = slots.length - 1 - lastFilled;
+    const newSlots = [...slots];
+    newSlots[idx] = null;
+    setSlots(newSlots);
+  };
+
+  const handleCheck = () => {
+    let s = 0;
+    slots.forEach((slot, i) => {
+      if (slot && slot.code === BUILD_FIELDS_CORRECT[i].code) s++;
+    });
+    setScore(s);
+    setChecked(true);
+  };
+
+  const allFilled = slots.every(s => s !== null);
+  const usedCodes = slots.filter(Boolean).map(s => s.code);
+
+  return (
+    <div className="card">
+      <div className="phase-icon" style={{ background: '#DCFCE7' }}>
+        <span style={{fontSize:'2rem'}}>&#128736;</span>
+      </div>
+      <h2>Fase 3 — Monte a Classe</h2>
+      <p className="subtitle">
+        Abaixo esta o CREATE TABLE de moradores. Coloque os campos
+        na ordem correta da classe Python:
+        <strong> obrigatorios primeiro, opcionais depois!</strong>
+      </p>
+
+      <div className="code-block">
+        <span className="kw">CREATE TABLE</span> moradores (<br/>
+        &nbsp;&nbsp;id &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="tp">INTEGER PRIMARY KEY NOT NULL</span>,<br/>
+        &nbsp;&nbsp;nome &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="tp">TEXT NOT NULL</span>,<br/>
+        &nbsp;&nbsp;cpf &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="tp">TEXT UNIQUE NOT NULL</span>,<br/>
+        &nbsp;&nbsp;telefone &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="tp">TEXT</span>,<br/>
+        &nbsp;&nbsp;ativo &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="tp">BOOLEAN DEFAULT 1</span>,<br/>
+        &nbsp;&nbsp;correlation_id &nbsp;<span className="tp">TEXT UNIQUE NOT NULL</span><br/>
+        );
+      </div>
+
+      <div className="hint-box">
+        <strong>Lembre:</strong> Campos NOT NULL (obrigatorios) vem PRIMEIRO.
+        Campos com DEFAULT ou que aceitam NULL vem DEPOIS.
+      </div>
+
+      <div style={{ margin: '20px 0' }}>
+        <p style={{ fontWeight: 700, marginBottom: 8 }}>
+          <span className="dec" style={{fontFamily:'monospace'}}>@dataclass</span><br/>
+          <span style={{fontFamily:'monospace'}}><span className="kw">class</span> Morador:</span>
+        </p>
+        {slots.map((slot, i) => {
+          let cls = 'field-slot';
+          if (slot) cls += ' placed';
+          if (checked && slot) {
+            cls += slot.code === BUILD_FIELDS_CORRECT[i].code ? ' correct-slot' : ' wrong-slot';
+          }
+          const num = i + 1;
+          const section = i < 4 ? '(obrigatorio)' : '(opcional)';
+          return (
+            <div key={i} className={cls}>
+              <span>{slot ? slot.label : `${num}. __________ ${section}`}</span>
+              {checked && slot && slot.code !== BUILD_FIELDS_CORRECT[i].code && (
+                <span style={{fontSize:'0.85rem', color:'#16A34A'}}>
+                  Correto: {BUILD_FIELDS_CORRECT[i].label}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <p style={{ fontWeight: 700, textAlign: 'center', margin: '16px 0 8px' }}>
+        Clique nos campos abaixo para posicionar:
+      </p>
+      <div className="chip-pool">
+        {available.map(f => (
+          <button
+            key={f.code}
+            className={`field-chip ${usedCodes.includes(f.code) ? 'used' : ''}`}
+            onClick={() => handlePick(f)}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-center mt-16">
+        {!checked && (
+          <>
+            <button className="btn btn-outline" onClick={handleUndo} disabled={usedCodes.length === 0}>
+              Desfazer
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleCheck}
+              disabled={!allFilled}
+              style={{ opacity: allFilled ? 1 : 0.5 }}
+            >
+              Verificar Ordem
+            </button>
+          </>
+        )}
+      </div>
+
+      {checked && (
+        <>
+          <Feedback type={score === 6 ? 'success' : score >= 4 ? 'info' : 'error'}>
+            {score === 6 ? 'Perfeito! Ordem 100% correta!' :
+             score >= 4 ? `${score}/6 corretos. Quase la!` :
+             `${score}/6. A regra e: obrigatorios (sem =) primeiro!`}
+          </Feedback>
+          <div className="text-center mt-16">
+            <button className="btn btn-success btn-lg" onClick={() => onComplete(score === 6 ? 3 : score >= 4 ? 2 : 1)}>
+              Proxima Fase →
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── PHASE 4: QUIZ ──────────────────────────
+function Quiz({ onComplete }) {
+  const [questions] = useState(() => shuffle(QUIZ_QUESTIONS).slice(0, 6));
+  const [current, setCurrent] = useState(0);
+  const [selected, setSelected] = useState(null);
+  const [score, setScore] = useState(0);
+  const [showExplain, setShowExplain] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const q = questions[current];
+
+  const handleSelect = (idx) => {
+    if (selected !== null) return;
+    setSelected(idx);
+    if (idx === q.correct) setScore(s => s + 1);
+    setShowExplain(true);
+  };
+
+  const handleNext = () => {
+    if (current + 1 >= questions.length) {
+      setDone(true);
+    } else {
+      setCurrent(c => c + 1);
+      setSelected(null);
+      setShowExplain(false);
+    }
+  };
+
+  if (done) {
+    return (
+      <div className="card text-center">
+        <div className="phase-icon" style={{ background: '#DCFCE7' }}>
+          <span style={{fontSize:'2rem'}}>&#127942;</span>
+        </div>
+        <h2>Quiz Completo!</h2>
+        <div className="score-display">
+          <div className="score-big">{score}/{questions.length}</div>
+          <div className="score-label">entradas autorizadas</div>
+        </div>
+        <Feedback type={score >= 5 ? 'success' : score >= 3 ? 'info' : 'error'}>
+          {score >= 5 ? 'Excelente! Voce domina o mapeamento!' :
+           score >= 3 ? 'Bom trabalho! Alguns conceitos para revisar.' :
+           'Continue praticando — cada tentativa te deixa mais forte!'}
+        </Feedback>
+        <div className="mt-24">
+          <button className="btn btn-gold btn-lg" onClick={() => onComplete(score >= 5 ? 3 : score >= 3 ? 2 : 1)}>
+            Ver Resultado Final
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card">
+      <div className="phase-icon" style={{ background: '#E0E7FF' }}>
+        <span style={{fontSize:'2rem'}}>&#128101;</span>
+      </div>
+      <h2>Fase 4 — Quiz do Porteiro</h2>
+      <p className="subtitle">
+        Pergunta {current + 1} de {questions.length} — Cada acerto e uma entrada autorizada!
+      </p>
+
+      <p className="quiz-question">{q.q}</p>
+
+      {q.options.map((opt, idx) => {
+        let cls = 'quiz-option';
+        if (selected !== null && idx === q.correct) cls += ' correct-opt';
+        if (selected === idx && idx !== q.correct) cls += ' wrong-opt';
+        return (
+          <button key={idx} className={cls} onClick={() => handleSelect(idx)}>
+            {opt}
+          </button>
+        );
+      })}
+
+      {showExplain && (
+        <>
+          <Feedback type={selected === q.correct ? 'success' : 'info'}>
+            {selected === q.correct ? 'Acertou! ' : 'Quase! '}
+            {q.explain}
+          </Feedback>
+          <div className="text-center mt-16">
+            <button className="btn btn-primary" onClick={handleNext}>
+              {current + 1 < questions.length ? 'Proxima Pergunta →' : 'Ver Resultado →'}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── FINAL SCORE ────────────────────────────
+function FinalScore({ stars, onRestart }) {
+  const total = stars.reduce((a, b) => a + b, 0);
+  const max = stars.length * 3;
+  const pct = Math.round((total / max) * 100);
+
+  const badges = [
+    { name: "Tradutor de Tipos", earned: stars[1] >= 2 },
+    { name: "Mestre da Ordem", earned: stars[2] >= 2 },
+    { name: "Porteiro Aprovado", earned: stars[3] >= 2 },
+    { name: "Memoria de Elefante", earned: stars[0] >= 2 },
+    { name: "Dominio Completo", earned: total >= 10 },
+  ];
+
+  return (
+    <div className="card text-center">
+      <h2>Resultado Final</h2>
+      <div className="score-display">
+        <div className="score-big">{pct}%</div>
+        <div className="score-label">{total} de {max} estrelas</div>
+      </div>
+
+      <div style={{ margin: '24px 0' }}>
+        {['Memoria', 'Tradutor', 'Monte a Classe', 'Quiz'].map((name, i) => (
+          <div key={i} style={{ margin: '8px 0', fontSize: '1.1rem' }}>
+            <strong>{name}:</strong>{' '}
+            {'★'.repeat(stars[i])}{'☆'.repeat(3 - stars[i])}
+          </div>
+        ))}
+      </div>
+
+      <h3 style={{ marginBottom: 16 }}>Conquistas</h3>
+      <div className="badge-grid">
+        {badges.map((b, i) => (
+          <div key={i} className={`badge ${b.earned ? 'earned' : 'locked'}`}>
+            {b.earned ? '★ ' : '☆ '}{b.name}
+          </div>
+        ))}
+      </div>
+
+      <Feedback type="success">
+        {pct >= 80 ? 'Voce esta pronto para criar models sozinho! Parabens!' :
+         pct >= 50 ? 'Bom progresso! Releia o ebook e jogue de novo para melhorar.' :
+         'Nao desanime! Cada tentativa te deixa mais forte. Jogue novamente!'}
+      </Feedback>
+
+      <div className="hint-box mt-24">
+        <strong>Lembre dos 5 pontos da mochila:</strong><br/>
+        1. Tabela → Classe &nbsp; 2. Coluna → Atributo &nbsp; 3. @dataclass<br/>
+        4. NULL → Optional &nbsp; 5. Obrigatorios primeiro!
+      </div>
+
+      <div className="flex-center mt-24">
+        <button className="btn btn-primary btn-lg" onClick={onRestart}>
+          Jogar Novamente
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// MAIN APP
+// ═══════════════════════════════════════════
+function App() {
+  const [phase, setPhase] = useState('welcome');
+  const [stars, setStars] = useState([0, 0, 0, 0]);
+  const phaseNum = phase === 'welcome' ? 0 : phase === 'memory' ? 1 : phase === 'types' ? 2 : phase === 'build' ? 3 : phase === 'quiz' ? 4 : 4;
+
+  const addStars = (phaseIdx, s) => {
+    setStars(prev => {
+      const n = [...prev];
+      n[phaseIdx] = s;
+      return n;
+    });
+  };
+
+  const restart = () => {
+    setPhase('welcome');
+    setStars([0, 0, 0, 0]);
+  };
+
+  return (
+    <div>
+      <Header />
+      {phase !== 'welcome' && phase !== 'done' && <ProgressBar phase={phaseNum} total={4} />}
+
+      {phase === 'welcome' && <Welcome onStart={() => setPhase('memory')} />}
+      {phase === 'memory' && <MemoryGame onComplete={(s) => { addStars(0, s); setPhase('types'); }} />}
+      {phase === 'types' && <TypeTranslator onComplete={(s) => { addStars(1, s); setPhase('build'); }} />}
+      {phase === 'build' && <BuildClass onComplete={(s) => { addStars(2, s); setPhase('quiz'); }} />}
+      {phase === 'quiz' && <Quiz onComplete={(s) => { addStars(3, s); setPhase('done'); }} />}
+      {phase === 'done' && <FinalScore stars={stars} onRestart={restart} />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
