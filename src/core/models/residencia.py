@@ -66,7 +66,9 @@ TIPOS_MORADIA_VALIDOS = ("apartamento", "casa", "comercial", "outro")
 
 
 @dataclass
-class Residencia:
+class Residencias:
+    __tablename__ = "residencias"
+
     """
     Representa uma unidade habitacional do condominio.
 

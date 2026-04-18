@@ -100,7 +100,8 @@ TIPOS_MORADOR_VALIDOS = ("proprietario", "inquilino")
 
 
 @dataclass
-class MoradorResidencia:
+class MoradorResidencias:
+    __tablename__ = "morador_residencias"
     """
     Representa o VINCULO entre um morador e uma residencia.
 

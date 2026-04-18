@@ -37,7 +37,9 @@ from src.core.models.base import parse_date, parse_datetime
 
 
 @dataclass
-class Morador:
+class Moradores:
+    __tablename__ = "moradores"
+
     """
     Representa um morador do condomínio.
 
