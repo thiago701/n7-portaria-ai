@@ -62,7 +62,7 @@ CREATE TABLE moradores (
     termos_lgpd           BYTEA,
     dt_aceite_lgpd        TIMESTAMP,
     ativo                 BOOLEAN   NOT NULL DEFAULT TRUE,
-    correlation_id        TEXT      UNIQUE NOT NULL,
+    codigo_condominio        TEXT      NOT NULL,
     dt_criado_em          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     dt_atualizado_em      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     -- Regra LGPD: morador ativo exige aceite registrado
@@ -84,7 +84,6 @@ CREATE TABLE assinatura_condominio (
     status                TEXT      NOT NULL DEFAULT 'ativo'
                                     CHECK (status IN ('ativo','pendente','vencido','cancelado')),
     observacoes           TEXT,
-    correlation_id        TEXT      UNIQUE NOT NULL,
     dt_criado_em          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     dt_atualizado_em      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_assinatura_responsavel
@@ -104,7 +103,6 @@ CREATE TABLE residencias (
     interfone             TEXT,
     observacao            TEXT,
     ativo                 BOOLEAN   NOT NULL DEFAULT TRUE,
-    correlation_id        TEXT      UNIQUE NOT NULL,
     dt_criado_em          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     dt_atualizado_em      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_residencias_condominio
@@ -122,7 +120,7 @@ CREATE TABLE morador_residencia (
     dt_inicio             DATE      NOT NULL DEFAULT CURRENT_DATE,
     dt_fim                DATE      CHECK (dt_fim IS NULL OR dt_fim >= dt_inicio),
     ativo                 BOOLEAN   NOT NULL DEFAULT TRUE,
-    correlation_id        TEXT      UNIQUE NOT NULL,
+    codigo_condominio        TEXT      NOT NULL,
     dt_criado_em          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_mr_morador
         FOREIGN KEY (morador_id) REFERENCES moradores(id)
@@ -145,7 +143,7 @@ CREATE TABLE visitantes (
     motivo_bloqueio       TEXT,
     dt_validade_inicio    DATE,
     dt_validade_fim       DATE      CHECK (dt_validade_fim IS NULL OR dt_validade_fim >= dt_validade_inicio),
-    correlation_id        TEXT      UNIQUE NOT NULL,
+    codigo_condominio        TEXT      NOT NULL,
     dt_criado_em          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     -- Bloqueio exige motivo
     CONSTRAINT chk_visitantes_bloqueio_motivo
@@ -162,7 +160,7 @@ CREATE TABLE funcionarios (
     login                 TEXT      UNIQUE NOT NULL,
     senha_hash            TEXT      NOT NULL CHECK (length(senha_hash) = 64),
     ativo                 BOOLEAN   NOT NULL DEFAULT TRUE,
-    correlation_id        TEXT      UNIQUE NOT NULL,
+    codigo_condominio        TEXT      NOT NULL,
     dt_criado_em          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -175,7 +173,7 @@ CREATE TABLE veiculos (
     funcionario_id        INTEGER,
     visitante_id          INTEGER,
     ativo                 BOOLEAN   NOT NULL DEFAULT TRUE,
-    correlation_id        TEXT      UNIQUE NOT NULL,
+    codigo_condominio        TEXT      NOT NULL,
     dt_criado_em          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     -- Veículo pertence a UM dos três (ou a nenhum, no caso de cadastro avulso)
     CONSTRAINT chk_veiculos_owner_exclusivo CHECK (
@@ -209,7 +207,7 @@ CREATE TABLE acessos (
     dt_entrada_em         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     dt_saida_em           TIMESTAMP CHECK (dt_saida_em IS NULL OR dt_saida_em >= dt_entrada_em),
     observacoes           TEXT,
-    correlation_id        TEXT      UNIQUE NOT NULL,
+    codigo_condominio        TEXT      NOT NULL,
     CHECK (auth_senha OR auth_digital OR auth_facial),
     -- Acesso é trilha de auditoria: JAMAIS cascatear DELETE; usar RESTRICT
     CONSTRAINT fk_acessos_visitante
@@ -233,7 +231,7 @@ CREATE TABLE config_acesso_morador (
     permite_senha         BOOLEAN   NOT NULL DEFAULT TRUE,
     permite_digital       BOOLEAN   NOT NULL DEFAULT TRUE,
     permite_facial        BOOLEAN   NOT NULL DEFAULT FALSE,
-    correlation_id        TEXT      UNIQUE NOT NULL,
+    codigo_condominio        TEXT      NOT NULL,
     dt_criado_em          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     dt_atualizado_em      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CHECK (permite_senha OR permite_digital OR permite_facial),

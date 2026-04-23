@@ -12,7 +12,7 @@ Table "moradores" {
   "termos_lgpd" BYTEA
   "dt_aceite_lgpd" TIMESTAMP
   "ativo" BOOLEAN [not null, default: true]
-  "correlation_id" TEXT [unique, not null]
+  "codigo_condominio" TEXT [not null]
   "dt_criado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
   "dt_atualizado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
 
@@ -39,7 +39,6 @@ Table "assinatura_condominio" {
   "dt_vigencia_fim" DATE [check: `dt_vigencia_fim IS NULL OR dt_vigencia_fim >= dt_vigencia_inicio`]
   "status" TEXT [not null, check: `status IN ('ativo','pendente','vencido','cancelado')`, default: 'ativo']
   "observacoes" TEXT
-  "correlation_id" TEXT [unique, not null]
   "dt_criado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
   "dt_atualizado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
 
@@ -60,7 +59,6 @@ Table "residencias" {
   "interfone" TEXT
   "observacao" TEXT
   "ativo" BOOLEAN [not null, default: true]
-  "correlation_id" TEXT [unique, not null]
   "dt_criado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
   "dt_atualizado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
 
@@ -79,7 +77,7 @@ Table "morador_residencia" {
   "dt_inicio" DATE [not null, default: `CURRENT_DATE`]
   "dt_fim" DATE [check: `dt_fim IS NULL OR dt_fim >= dt_inicio`]
   "ativo" BOOLEAN [not null, default: true]
-  "correlation_id" TEXT [unique, not null]
+  "codigo_condominio" TEXT [not null]
   "dt_criado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
 
   Indexes {
@@ -101,7 +99,7 @@ Table "visitantes" {
   "motivo_bloqueio" TEXT
   "dt_validade_inicio" DATE
   "dt_validade_fim" DATE [check: `dt_validade_fim IS NULL OR dt_validade_fim >= dt_validade_inicio`]
-  "correlation_id" TEXT [unique, not null]
+  "codigo_condominio" TEXT [not null]
   "dt_criado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
 
   Checks {
@@ -123,7 +121,7 @@ Table "funcionarios" {
   "login" TEXT [unique, not null]
   "senha_hash" TEXT [not null, check: `length(senha_hash) = 64`]
   "ativo" BOOLEAN [not null, default: true]
-  "correlation_id" TEXT [unique, not null]
+  "codigo_condominio" TEXT [not null]
   "dt_criado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
 
   Indexes {
@@ -140,7 +138,7 @@ Table "veiculos" {
   "funcionario_id" INTEGER
   "visitante_id" INTEGER
   "ativo" BOOLEAN [not null, default: true]
-  "correlation_id" TEXT [unique, not null]
+  "codigo_condominio" TEXT [not null]
   "dt_criado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
 
   Checks {
@@ -168,7 +166,7 @@ Table "acessos" {
   "dt_entrada_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
   "dt_saida_em" TIMESTAMP [check: `dt_saida_em IS NULL OR dt_saida_em >= dt_entrada_em`]
   "observacoes" TEXT
-  "correlation_id" TEXT [unique, not null]
+  "codigo_condominio" TEXT [not null]
 
   Checks {
     `auth_senha OR auth_digital OR auth_facial`
@@ -190,7 +188,7 @@ Table "config_acesso_morador" {
   "permite_senha" BOOLEAN [not null, default: true]
   "permite_digital" BOOLEAN [not null, default: true]
   "permite_facial" BOOLEAN [not null, default: false]
-  "correlation_id" TEXT [unique, not null]
+  "codigo_condominio" TEXT [not null]
   "dt_criado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
   "dt_atualizado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
 

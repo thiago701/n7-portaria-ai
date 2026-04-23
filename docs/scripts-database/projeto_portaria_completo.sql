@@ -81,7 +81,7 @@ CREATE TABLE moradores (
                                     CHECK(ativo IN (0, 1)),
     -- 1 = ativo. 0 = soft delete (dado preservado, morador "invisivel").
 
-    correlation_id        TEXT      UNIQUE NOT NULL,
+    codigo_condominio        TEXT      NOT NULL,
     -- SHA-256 de 'moradores:{cpf}'. Usado para sync sem duplicatas.
 
     dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP,
@@ -132,7 +132,6 @@ CREATE TABLE residencias (
     ativo                 BOOLEAN   DEFAULT 1
                                     CHECK(ativo IN (0, 1)),
 
-    correlation_id        TEXT      UNIQUE NOT NULL,
 
     dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP,
     dt_atualizado_em      DATETIME  DEFAULT CURRENT_TIMESTAMP
@@ -168,7 +167,7 @@ CREATE TABLE morador_residencia (
     ativo                 BOOLEAN   DEFAULT 1
                                     CHECK(ativo IN (0, 1)),
 
-    correlation_id        TEXT      UNIQUE NOT NULL,
+    codigo_condominio        TEXT      NOT NULL,
 
     dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP,
 
@@ -212,7 +211,7 @@ CREATE TABLE visitantes (
                                         dt_validade_fim >= dt_validade_inicio),
     -- Ate esta data. NULL = sem prazo. CHECK evita datas invertidas.
 
-    correlation_id        TEXT      UNIQUE NOT NULL,
+    codigo_condominio        TEXT      NOT NULL,
 
     dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP
 );
@@ -240,7 +239,7 @@ CREATE TABLE funcionarios (
     -- Python: import hashlib; hashlib.sha256('senha'.encode()).hexdigest()
 
     ativo                 BOOLEAN   DEFAULT 1  CHECK(ativo IN (0, 1)),
-    correlation_id        TEXT      UNIQUE NOT NULL,
+    codigo_condominio        TEXT      NOT NULL,
     dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -268,7 +267,7 @@ CREATE TABLE veiculos (
     -- Apenas UM deve ser preenchido — os outros ficam NULL.
 
     ativo                 BOOLEAN   DEFAULT 1  CHECK(ativo IN (0, 1)),
-    correlation_id        TEXT      UNIQUE NOT NULL,
+    codigo_condominio        TEXT      NOT NULL,
     dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (morador_id)      REFERENCES moradores(id),
@@ -318,7 +317,7 @@ CREATE TABLE acessos (
     -- Nome do porteiro em texto livre (compatibilidade).
 
     observacoes           TEXT,
-    correlation_id        TEXT      UNIQUE NOT NULL,
+    codigo_condominio        TEXT      NOT NULL,
 
     CHECK(auth_senha + auth_digital + auth_facial >= 1),
     -- Nenhum acesso pode ser registrado sem autenticacao!
@@ -349,7 +348,7 @@ CREATE TABLE config_acesso_morador (
     permite_facial        BOOLEAN   DEFAULT 0  CHECK(permite_facial IN (0, 1)),
     -- DEFAULT 0 para facial: exige hardware de camera especial.
 
-    correlation_id        TEXT      UNIQUE NOT NULL,
+    codigo_condominio        TEXT      NOT NULL,
     dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP,
     dt_atualizado_em      DATETIME  DEFAULT CURRENT_TIMESTAMP,
 
@@ -391,7 +390,6 @@ CREATE TABLE assinatura_condominio (
                                     CHECK(status IN ('ativo','pendente','vencido','cancelado')),
 
     observacoes           TEXT,
-    correlation_id        TEXT      UNIQUE NOT NULL,
     dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP,
     dt_atualizado_em      DATETIME  DEFAULT CURRENT_TIMESTAMP,
 
@@ -441,38 +439,38 @@ CREATE INDEX idx_assinatura_vig_fim    ON assinatura_condominio(dt_vigencia_fim)
 -- ──────────────────────────────────────────────
 -- 3.1 — Moradores (10 registros)
 -- ──────────────────────────────────────────────
--- correlation_id = SHA-256 de 'moradores:{cpf}' calculado no Python.
+-- codigo_condominio = identificador do condomínio (usado para agrupar registros por condomínio).
 -- Em producao: hashlib.sha256(f'moradores:{cpf}'.encode()).hexdigest()
 
-INSERT INTO moradores (nome, cpf, telefone, email, ativo, dt_aceite_lgpd, correlation_id)
-VALUES ('Joao Carlos da Silva','11122233344','83999001122','joao.silva@email.com',1,'2026-04-09 10:00:00','72104cb9e6cf2f1ac722a5513d1145b32a94fdc216e2ff09c991f88e5e343e8a');
+INSERT INTO moradores (nome, cpf, telefone, email, ativo, dt_aceite_lgpd, codigo_condominio)
+VALUES ('Joao Carlos da Silva','11122233344','83999001122','joao.silva@email.com',1,'2026-04-09 10:00:00', 'COND-001');
 
-INSERT INTO moradores (nome, cpf, telefone, email, ativo, dt_aceite_lgpd, correlation_id)
-VALUES ('Maria Aparecida Santos','55566677788','83988112233','maria.santos@email.com',1,'2026-04-09 10:00:00','acec16f37ddd60d6ab79d892a5e2b6d8c5fed2e7c7d23a28eebc9fc84205f8bb');
+INSERT INTO moradores (nome, cpf, telefone, email, ativo, dt_aceite_lgpd, codigo_condominio)
+VALUES ('Maria Aparecida Santos','55566677788','83988112233','maria.santos@email.com',1,'2026-04-09 10:00:00', 'COND-001');
 
-INSERT INTO moradores (nome, cpf, telefone, email, ativo, correlation_id)
-VALUES ('Pedro Henrique Oliveira','99988877766','83977223344','pedro.oliveira@email.com',1,'16b60edc33103400e13f71c96d9b69d2c70c1592938e42586e68f2dc1eddba49');
+INSERT INTO moradores (nome, cpf, telefone, email, ativo, codigo_condominio)
+VALUES ('Pedro Henrique Oliveira','99988877766','83977223344','pedro.oliveira@email.com',1, 'COND-001');
 
-INSERT INTO moradores (nome, cpf, telefone, email, ativo, dt_aceite_lgpd, correlation_id)
-VALUES ('Ana Paula Ferreira','44433322211','83966334455','ana.ferreira@email.com',1,'2026-04-09 10:00:00','33d18f4959453b7f40ec89b81f289fcfbe9853c0b6ff55723696994f24470690');
+INSERT INTO moradores (nome, cpf, telefone, email, ativo, dt_aceite_lgpd, codigo_condominio)
+VALUES ('Ana Paula Ferreira','44433322211','83966334455','ana.ferreira@email.com',1,'2026-04-09 10:00:00', 'COND-001');
 
-INSERT INTO moradores (nome, cpf, telefone, ativo, correlation_id)
-VALUES ('Carlos Eduardo Lima','77788899900','83955445566',1,'c65ef5d5e73cb4f14ccac8d2e158f28b7a12370964116e8229929095b91fbc37');
+INSERT INTO moradores (nome, cpf, telefone, ativo, codigo_condominio)
+VALUES ('Carlos Eduardo Lima','77788899900','83955445566',1, 'COND-001');
 
-INSERT INTO moradores (nome, cpf, telefone, email, ativo, dt_aceite_lgpd, correlation_id)
-VALUES ('Lucia Fernandes Gomes','12312312300','83922001133','lucia.gomes@email.com',1,'2026-04-09 10:00:00','d34026bfb80b7750340269732c5f9df2311bd0f2e4345512d377e68c64d3b3ad');
+INSERT INTO moradores (nome, cpf, telefone, email, ativo, dt_aceite_lgpd, codigo_condominio)
+VALUES ('Lucia Fernandes Gomes','12312312300','83922001133','lucia.gomes@email.com',1,'2026-04-09 10:00:00', 'COND-001');
 
-INSERT INTO moradores (nome, cpf, telefone, ativo, correlation_id)
-VALUES ('Rafael Souza Mendes','45645645600','83911009988',1,'a7171fb127844865bf7ea8807e3ddcf7592ed5a0c9a3d36759d5469ce5358be0');
+INSERT INTO moradores (nome, cpf, telefone, ativo, codigo_condominio)
+VALUES ('Rafael Souza Mendes','45645645600','83911009988',1, 'COND-001');
 
-INSERT INTO moradores (nome, cpf, telefone, email, ativo, dt_aceite_lgpd, correlation_id)
-VALUES ('Dona Teresa Albuquerque','78978978700','83900112233','teresa.albuquerque@email.com',1,'2026-04-09 10:00:00','302d4921ec2a44f2638ae243de0d9bf18953658719d3fe6d74d3dc30df923f6b');
+INSERT INTO moradores (nome, cpf, telefone, email, ativo, dt_aceite_lgpd, codigo_condominio)
+VALUES ('Dona Teresa Albuquerque','78978978700','83900112233','teresa.albuquerque@email.com',1,'2026-04-09 10:00:00', 'COND-001');
 
-INSERT INTO moradores (nome, cpf, telefone, email, ativo, correlation_id)
-VALUES ('Bruno Martins Costa','14725836900','83988776655','bruno.martins@email.com',1,'0bc2e0e60c01f6c0f042f1ffced27dfdaa9a37a100d3bd942b03832d45e1594e');
+INSERT INTO moradores (nome, cpf, telefone, email, ativo, codigo_condominio)
+VALUES ('Bruno Martins Costa','14725836900','83988776655','bruno.martins@email.com',1, 'COND-001');
 
-INSERT INTO moradores (nome, cpf, telefone, email, ativo, correlation_id)
-VALUES ('Sergio Ramos Pereira','96385274100','83977665544','sergio.ramos@email.com',0,'9607837e767aaf6dd26683a4f4a4729c9828d6646157c9d0cd513218aef2d64a');
+INSERT INTO moradores (nome, cpf, telefone, email, ativo, codigo_condominio)
+VALUES ('Sergio Ramos Pereira','96385274100','83977665544','sergio.ramos@email.com',0, 'COND-001');
 -- Sergio: ativo=0 = soft delete (ex-morador que se mudou)
 
 -- Atualizar fotos e biometrias dos moradores que as possuem:
@@ -494,44 +492,44 @@ UPDATE moradores SET foto=NULL, dt_foto_validade='2025-03-15' WHERE cpf='1472583
 --   [S] SIMPLES    — so andar (predinho unico sem bloco)
 
 -- [V] Apto 101 — Bloco A, 1o andar
-INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone, correlation_id)
-VALUES ('COND-001','101','A',1,'apartamento','101','1ccd150e2b552bc7bb71a6bec19ff9110ce1a8a76cf0a1a81db6eaad16685b08');
+INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone)
+VALUES ('COND-001','101','A',1,'apartamento','101');
 
 -- [V] Apto 202 — Bloco A, 2o andar
-INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone, correlation_id)
-VALUES ('COND-001','202','A',2,'apartamento','202','f7e5a6c9f4e8156d0de4d6fdbe5a73d776ef5dfa76b62258fbc8d2a86f2782bc');
+INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone)
+VALUES ('COND-001','202','A',2,'apartamento','202');
 
 -- [V] Apto 303 — Bloco B, 3o andar
-INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone, correlation_id)
-VALUES ('COND-001','303','B',3,'apartamento','303','2f9251ab6a5c4338f485b4ac1e01e4ae7a811454b54ab5d999519c0f10ca24ab');
+INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone)
+VALUES ('COND-001','303','B',3,'apartamento','303');
 
 -- [V] Apto 104 — Bloco A, 1o andar
-INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone, correlation_id)
-VALUES ('COND-001','104','A',1,'apartamento','104','f132abc2f047e8f15468d8f9dbcce0973edfa50544aa4555addb37e79a6e5a1a');
+INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone)
+VALUES ('COND-001','104','A',1,'apartamento','104');
 
 -- [V] Apto 501 — Bloco C, 5o andar
-INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone, correlation_id)
-VALUES ('COND-001','501','C',5,'apartamento','501','826ae84e9c67b31c5a1bd069ea68bf5089dec85286e0b63253bd1ed3a48fee92');
+INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone)
+VALUES ('COND-001','501','C',5,'apartamento','501');
 
 -- [V] Apto 102 — Bloco A, 1o andar
-INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone, correlation_id)
-VALUES ('COND-001','102','A',1,'apartamento','102','1d362ac2452307e641e0e1aaa50783160346042b7af3ca948905e71d3f4dead5');
+INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone)
+VALUES ('COND-001','102','A',1,'apartamento','102');
 
 -- [H] Lote 08 — Quadra 03 (condominio de casas)
-INSERT INTO residencias (codigo_condominio, numero_residencia, quadra, tipo_moradia, observacao, correlation_id)
-VALUES ('COND-001','08','03','casa','Lote 08 da Quadra 03','3cb2c94dddc8eca081e06b962525ffdb72bb8f30582dcc64b077f48b8ff8997d');
+INSERT INTO residencias (codigo_condominio, numero_residencia, quadra, tipo_moradia, observacao)
+VALUES ('COND-001','08','03','casa','Lote 08 da Quadra 03');
 
 -- [H] Lote 14 — Quadra 07 (condominio de casas)
-INSERT INTO residencias (codigo_condominio, numero_residencia, quadra, tipo_moradia, observacao, correlation_id)
-VALUES ('COND-001','14','07','casa','Lote 14 da Quadra 07','639310841f7f3c153c7f2d2d7733e5b83af825c8ee2fc440468132d1e5649f08');
+INSERT INTO residencias (codigo_condominio, numero_residencia, quadra, tipo_moradia, observacao)
+VALUES ('COND-001','14','07','casa','Lote 14 da Quadra 07');
 
 -- [S] Apto 301 — predinho unico sem bloco
-INSERT INTO residencias (codigo_condominio, numero_residencia, andar, tipo_moradia, interfone, observacao, correlation_id)
-VALUES ('COND-001','301',3,'apartamento','301','Predinho sem bloco','99814f834cc117b151dcc7d9c0cf5de717730bcc93c7b3782f82793e94e098f6');
+INSERT INTO residencias (codigo_condominio, numero_residencia, andar, tipo_moradia, interfone, observacao)
+VALUES ('COND-001','301',3,'apartamento','301','Predinho sem bloco');
 
 -- [V] Apto 402 — Bloco B, 4o andar (ex-morador Sergio)
-INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone, correlation_id)
-VALUES ('COND-001','402','B',4,'apartamento','402','921dfc608b24288ec61a9459b0090030708a5725f116a2d9b679121316b77b7e');
+INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone)
+VALUES ('COND-001','402','B',4,'apartamento','402');
 
 
 -- ──────────────────────────────────────────────
@@ -539,18 +537,18 @@ VALUES ('COND-001','402','B',4,'apartamento','402','921dfc608b24288ec61a9459b009
 -- ──────────────────────────────────────────────
 -- DEMO N:N: Ana Paula (id=4) e proprietaria de 2 unidades!
 
-INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,correlation_id) VALUES (1,1,'proprietario','2024-01-10','e2fa727090a47afdcad043747f94d378b6e5865fed0291e72e417a7cddd63076');
-INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,correlation_id) VALUES (2,2,'inquilino','2025-06-01','d89c2b30b2ebd21654705b470d34ee61a829fbaf34ab464e21e5f61e0bbbff65');
-INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,correlation_id) VALUES (3,3,'proprietario','2020-03-01','2f78470e823125ec48c0efa7c236e06343889f11ed0d0c17b3ab42039fc6d6e3');
-INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,correlation_id) VALUES (4,4,'proprietario','2023-03-15','55bb9b3615a4ff69272decbaf4789c5ee904d6c6d502c98282dea2196dd3eb90');
-INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,correlation_id) VALUES (4,1,'proprietario','2023-03-15','5ac08b755649dcc7553b83815f556035832125d27cc1881afb0dfb6027ded2f0');
+INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,codigo_condominio) VALUES (1,1,'proprietario','2024-01-10', 'COND-001');
+INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,codigo_condominio) VALUES (2,2,'inquilino','2025-06-01', 'COND-001');
+INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,codigo_condominio) VALUES (3,3,'proprietario','2020-03-01', 'COND-001');
+INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,codigo_condominio) VALUES (4,4,'proprietario','2023-03-15', 'COND-001');
+INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,codigo_condominio) VALUES (4,1,'proprietario','2023-03-15', 'COND-001');
 -- Ana Paula tambem e co-proprietaria do Apto 101 (herdou do pai)!
-INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,correlation_id) VALUES (5,5,'inquilino','2024-01-01','a438b5a0d51a66dd3e83bc0c395b6dfe0ec47d25e5d29c6b5182df490cff0ac9');
-INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,correlation_id) VALUES (6,6,'proprietario','2019-07-01','1eb61a8d188a66874d4d50c07e5b69183f8fe9619a995c22b51f1caa11fd85da');
-INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,correlation_id) VALUES (7,7,'inquilino','2022-01-15','8405f971c1b79ece97e6e88d5fe2189d0adf83b6d29e0852f5bea905a273773f');
-INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,correlation_id) VALUES (8,8,'proprietario','2015-05-20','96a31d2a2fefc87023b794eecab354a99acc6c6a63568623befed1e10b8e2d49');
-INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,correlation_id) VALUES (9,9,'inquilino','2023-08-01','2c89679220a21413f72b162d1eb92863595b98023c15210e811f734f57d0ee5c');
-INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,correlation_id) VALUES (10,10,'proprietario','2018-02-01','64d312cb302fe239bf564dee91d13fd2439761b612725d5bdddd7007c1fe1a6c');
+INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,codigo_condominio) VALUES (5,5,'inquilino','2024-01-01', 'COND-001');
+INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,codigo_condominio) VALUES (6,6,'proprietario','2019-07-01', 'COND-001');
+INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,codigo_condominio) VALUES (7,7,'inquilino','2022-01-15', 'COND-001');
+INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,codigo_condominio) VALUES (8,8,'proprietario','2015-05-20', 'COND-001');
+INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,codigo_condominio) VALUES (9,9,'inquilino','2023-08-01', 'COND-001');
+INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,codigo_condominio) VALUES (10,10,'proprietario','2018-02-01', 'COND-001');
 
 
 -- ──────────────────────────────────────────────
@@ -558,24 +556,24 @@ INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,
 -- ──────────────────────────────────────────────
 -- Moradores sem config usam o padrao: 1 fator, qualquer tipo.
 
-INSERT INTO config_acesso_morador (morador_id,fatores_requeridos,permite_senha,permite_digital,permite_facial,correlation_id)
-VALUES (1,2,0,1,1,'7914898478adf525bea855df16a9e21de09414e23ce6427055e58a2e86ffe469');
+INSERT INTO config_acesso_morador (morador_id,fatores_requeridos,permite_senha,permite_digital,permite_facial,codigo_condominio)
+VALUES (1,2,0,1,1, 'COND-001');
 -- Joao: 2 fatores obrigatorios, so biometria (sem senha)
 
-INSERT INTO config_acesso_morador (morador_id,fatores_requeridos,permite_senha,permite_digital,permite_facial,correlation_id)
-VALUES (2,1,1,1,0,'567b4719ccd83efc64aff16183c623c2bcf6fc23d7913028d97c793dee84b468');
+INSERT INTO config_acesso_morador (morador_id,fatores_requeridos,permite_senha,permite_digital,permite_facial,codigo_condominio)
+VALUES (2,1,1,1,0, 'COND-001');
 -- Maria: 1 fator, senha ou digital (sem camera)
 
-INSERT INTO config_acesso_morador (morador_id,fatores_requeridos,permite_senha,permite_digital,permite_facial,correlation_id)
-VALUES (4,2,1,1,0,'38a70f6ccfeb329e09f4ba260c405c7dba364102fbc50550cfce0c7b35db48e6');
+INSERT INTO config_acesso_morador (morador_id,fatores_requeridos,permite_senha,permite_digital,permite_facial,codigo_condominio)
+VALUES (4,2,1,1,0, 'COND-001');
 -- Ana: 2 fatores, senha + digital
 
-INSERT INTO config_acesso_morador (morador_id,fatores_requeridos,permite_senha,permite_digital,permite_facial,correlation_id)
-VALUES (6,1,0,1,0,'72e2a5065a1d5925210cb88d22901a47079fa6313e68f1ae26bd5670a040b344');
+INSERT INTO config_acesso_morador (morador_id,fatores_requeridos,permite_senha,permite_digital,permite_facial,codigo_condominio)
+VALUES (6,1,0,1,0, 'COND-001');
 -- Lucia: 1 fator, so digital (sem senha por preferencia)
 
-INSERT INTO config_acesso_morador (morador_id,fatores_requeridos,permite_senha,permite_digital,permite_facial,correlation_id)
-VALUES (8,2,0,1,1,'cc9aa65e2281a5d90bb3321d46c21ffebdaab2cbfc08ab83ba73ca1160797c2b');
+INSERT INTO config_acesso_morador (morador_id,fatores_requeridos,permite_senha,permite_digital,permite_facial,codigo_condominio)
+VALUES (8,2,0,1,1, 'COND-001');
 -- Dona Teresa: 2 fatores, digital + facial (maximo de seguranca)
 
 
@@ -585,7 +583,7 @@ VALUES (8,2,0,1,1,'cc9aa65e2281a5d90bb3321d46c21ffebdaab2cbfc08ab83ba73ca1160797
 INSERT INTO assinatura_condominio (
     codigo_condominio, nome_condominio, endereco,
     numero_contrato, dt_ativacao, dt_vigencia_inicio,
-    status, observacoes, correlation_id
+    status, observacoes
 ) VALUES (
     'COND-001',
     'Residencial Parque das Flores',
@@ -594,8 +592,7 @@ INSERT INTO assinatura_condominio (
     '2026-04-09',
     '2026-04-09',
     'ativo',
-    'Assinatura inicial do sistema n7-portaria-ai',
-    'b56eecd6260a748dce8f10f79c8aaa842d747df24febaff8898524403493fb61'
+    'Assinatura inicial do sistema n7-portaria-ai', 'COND-001'
 );
 
 
@@ -604,36 +601,36 @@ INSERT INTO assinatura_condominio (
 -- ──────────────────────────────────────────────
 
 -- Roberto: amigo do Joao — visita avulsa
-INSERT INTO visitantes (nome,documento,tipo_documento,telefone,correlation_id)
-VALUES ('Roberto Almeida','1234567','RG','83911112222','d360fb29c4b740ce5b14d469aa8e3a14046613ca036dd68109801f458eef1546');
+INSERT INTO visitantes (nome,documento,tipo_documento,telefone,codigo_condominio)
+VALUES ('Roberto Almeida','1234567','RG','83911112222', 'COND-001');
 
 -- Fernanda: amiga da Maria — visita avulsa
-INSERT INTO visitantes (nome,documento,tipo_documento,telefone,correlation_id)
-VALUES ('Fernanda Costa','98765432101','CNH','83933334444','2756d6698f27a08436d28a30b331edffc8094bb2d9be424481dd2094c24c916c');
+INSERT INTO visitantes (nome,documento,tipo_documento,telefone,codigo_condominio)
+VALUES ('Fernanda Costa','98765432101','CNH','83933334444', 'COND-001');
 
 -- Marcos: entregador recorrente
-INSERT INTO visitantes (nome,documento,tipo_documento,telefone,correlation_id)
-VALUES ('Marcos Delivery Pizza','7654321','RG','83955556666','35167da0662e1e665997b3b5d2716a7dd5e4867aca241c17cc9851b07d8e2c33');
+INSERT INTO visitantes (nome,documento,tipo_documento,telefone,codigo_condominio)
+VALUES ('Marcos Delivery Pizza','7654321','RG','83955556666', 'COND-001');
 
 -- Jose: BLOQUEADO — tentativa de acesso nao autorizado
-INSERT INTO visitantes (nome,documento,tipo_documento,bloqueado,motivo_bloqueio,correlation_id)
-VALUES ('Jose Suspeito','0000000','RG',1,'Tentativa de acesso nao autorizado em 01/04/2026','4cccf53242e8b9d552f85b4fd9fc042874bd8d4e277cb31eda76a4f4fb55b305');
+INSERT INTO visitantes (nome,documento,tipo_documento,bloqueado,motivo_bloqueio,codigo_condominio)
+VALUES ('Jose Suspeito','0000000','RG',1,'Tentativa de acesso nao autorizado em 01/04/2026', 'COND-001');
 
 -- Jean Pierre: tecnico estrangeiro — autorizado apenas durante obras (10/04 a 30/04)
-INSERT INTO visitantes (nome,documento,tipo_documento,telefone,dt_validade_inicio,dt_validade_fim,correlation_id)
-VALUES ('Jean Pierre Dubois','FR12345678','PASSAPORTE','83900998877','2026-04-10','2026-04-30','8e5715b82bfe3bf182c6961f229103bcb564e61ff8af25a42185f410e4ed4eb8');
+INSERT INTO visitantes (nome,documento,tipo_documento,telefone,dt_validade_inicio,dt_validade_fim,codigo_condominio)
+VALUES ('Jean Pierre Dubois','FR12345678','PASSAPORTE','83900998877','2026-04-10','2026-04-30', 'COND-001');
 
 -- Camila: sobrinha da Lucia — morando temporariamente (mai a jul/2026)
-INSERT INTO visitantes (nome,documento,tipo_documento,telefone,dt_validade_inicio,dt_validade_fim,correlation_id)
-VALUES ('Camila Rodrigues','55544433322','CNH','83944223311','2026-05-01','2026-07-31','a34e5818f646f09aecfa6ab44fb48a1bcaa04e5eb492cd1fa8f0324f5d21f041');
+INSERT INTO visitantes (nome,documento,tipo_documento,telefone,dt_validade_inicio,dt_validade_fim,codigo_condominio)
+VALUES ('Camila Rodrigues','55544433322','CNH','83944223311','2026-05-01','2026-07-31', 'COND-001');
 
 -- Sandra: irma do Pedro — acesso permanente a partir de abr/2026
-INSERT INTO visitantes (nome,documento,tipo_documento,telefone,dt_validade_inicio,correlation_id)
-VALUES ('Sandra Oliveira','3216549','RG','83966778899','2026-04-09','3a9849432fc688c6abfcd27d87027896ca130a32d88ba05606a52f359b0121e6');
+INSERT INTO visitantes (nome,documento,tipo_documento,telefone,dt_validade_inicio,codigo_condominio)
+VALUES ('Sandra Oliveira','3216549','RG','83966778899','2026-04-09', 'COND-001');
 
 -- Ricardo: BLOQUEADO — comportamento inadequado
-INSERT INTO visitantes (nome,documento,tipo_documento,bloqueado,motivo_bloqueio,correlation_id)
-VALUES ('Ricardo Problema','1111111','RG',1,'Comportamento agressivo com porteiro em 28/03/2026','8ddfcbd949ce5cfb72b7b33bb036bd6c0e9cbd3b72ce326845f115e86df79e24');
+INSERT INTO visitantes (nome,documento,tipo_documento,bloqueado,motivo_bloqueio,codigo_condominio)
+VALUES ('Ricardo Problema','1111111','RG',1,'Comportamento agressivo com porteiro em 28/03/2026', 'COND-001');
 
 
 -- ──────────────────────────────────────────────
@@ -641,40 +638,40 @@ VALUES ('Ricardo Problema','1111111','RG',1,'Comportamento agressivo com porteir
 -- ──────────────────────────────────────────────
 -- senha_hash abaixo = SHA-256 de '' (string vazia) — trocar em producao!
 
-INSERT INTO funcionarios (nome,cpf,cargo,setor,login,senha_hash,correlation_id)
-VALUES ('Jose Silva Santos','10120230340','porteiro','portaria','porteiro.silva','e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855','3512b07f74959acbc82083dd5ad4ea7a9d0e293657a12aea779e1b0ee669a1d1');
+INSERT INTO funcionarios (nome,cpf,cargo,setor,login,senha_hash,codigo_condominio)
+VALUES ('Jose Silva Santos','10120230340','porteiro','portaria','porteiro.silva','e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'COND-001');
 
-INSERT INTO funcionarios (nome,cpf,cargo,setor,login,senha_hash,correlation_id)
-VALUES ('Marcos Pereira Lima','20230340450','porteiro','portaria','porteiro.marcos','e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855','0950793ef7057529925913bf35327653887776ac4deccd0ae0324e9d2f9bf511');
+INSERT INTO funcionarios (nome,cpf,cargo,setor,login,senha_hash,codigo_condominio)
+VALUES ('Marcos Pereira Lima','20230340450','porteiro','portaria','porteiro.marcos','e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'COND-001');
 
-INSERT INTO funcionarios (nome,cpf,cargo,setor,login,senha_hash,correlation_id)
-VALUES ('Claudia Regina Borges','30340450560','administrador','administracao','admin.claudia','e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855','d0a8c15332ea1a0cf3a96e6cf6c59b8b30c791afb13826029315178d027db5b5');
+INSERT INTO funcionarios (nome,cpf,cargo,setor,login,senha_hash,codigo_condominio)
+VALUES ('Claudia Regina Borges','30340450560','administrador','administracao','admin.claudia','e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'COND-001');
 
-INSERT INTO funcionarios (nome,cpf,cargo,setor,login,senha_hash,correlation_id)
-VALUES ('Fatima Souza Andrade','40450560670','outro','limpeza','limpeza.fatima','e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855','6cb3dd614b4225c71bde78364cb46342a76820bd150ca7cff218b9c311d3841b');
+INSERT INTO funcionarios (nome,cpf,cargo,setor,login,senha_hash,codigo_condominio)
+VALUES ('Fatima Souza Andrade','40450560670','outro','limpeza','limpeza.fatima','e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'COND-001');
 
-INSERT INTO funcionarios (nome,cpf,cargo,setor,login,senha_hash,correlation_id)
-VALUES ('Paulo Oliveira Neto','50560670780','zelador','manutencao','zelador.paulo','e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855','679f4960f88cbb170c2c6cc18653dd8203684d50ba3eda0ad2a82de474957df4');
+INSERT INTO funcionarios (nome,cpf,cargo,setor,login,senha_hash,codigo_condominio)
+VALUES ('Paulo Oliveira Neto','50560670780','zelador','manutencao','zelador.paulo','e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'COND-001');
 
 
 -- ──────────────────────────────────────────────
 -- 3.8 — Veiculos (5 registros)
 -- ──────────────────────────────────────────────
 
-INSERT INTO veiculos (placa,modelo,cor,morador_id,correlation_id)
-VALUES ('ABC-1234','Honda Civic','Prata',1,'69f472ffd51e61a0f489498fc339c9d299d90b9f268855a0b4431e4fcc484346');
+INSERT INTO veiculos (placa,modelo,cor,morador_id,codigo_condominio)
+VALUES ('ABC-1234','Honda Civic','Prata',1, 'COND-001');
 
-INSERT INTO veiculos (placa,modelo,cor,morador_id,correlation_id)
-VALUES ('DEF-5678','Fiat Pulse','Branco',4,'0b2f8b037a2b1e18d722e27bef0fac999c51a92c4a451b93f54aa71492465c4e');
+INSERT INTO veiculos (placa,modelo,cor,morador_id,codigo_condominio)
+VALUES ('DEF-5678','Fiat Pulse','Branco',4, 'COND-001');
 
-INSERT INTO veiculos (placa,modelo,cor,morador_id,correlation_id)
-VALUES ('GHI-9012','Toyota Corolla','Preto',8,'bce468b6569f90ae6a1de439c8316554cf524d1f12f3e5caf7f49dec4921c14b');
+INSERT INTO veiculos (placa,modelo,cor,morador_id,codigo_condominio)
+VALUES ('GHI-9012','Toyota Corolla','Preto',8, 'COND-001');
 
-INSERT INTO veiculos (placa,modelo,cor,funcionario_id,correlation_id)
-VALUES ('JKL-3456','Moto Honda CG','Vermelha',2,'334f1c4e400e74b3b6fa2571981c4fe28b409b09a44af724e4d9a9dbf66b3f5c');
+INSERT INTO veiculos (placa,modelo,cor,funcionario_id,codigo_condominio)
+VALUES ('JKL-3456','Moto Honda CG','Vermelha',2, 'COND-001');
 
-INSERT INTO veiculos (placa,modelo,cor,visitante_id,correlation_id)
-VALUES ('QRS-5678','VW Polo','Cinza',2,'bbfeb3ba1b9a3a309c5afc21a2e3303258b46e6472367537262797de7faedfa1');
+INSERT INTO veiculos (placa,modelo,cor,visitante_id,codigo_condominio)
+VALUES ('QRS-5678','VW Polo','Cinza',2, 'COND-001');
 
 
 -- ──────────────────────────────────────────────
@@ -682,44 +679,44 @@ VALUES ('QRS-5678','VW Polo','Cinza',2,'bbfeb3ba1b9a3a309c5afc21a2e3303258b46e64
 -- ──────────────────────────────────────────────
 
 -- Roberto visitou Joao (ja saiu):
-INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,observacoes,correlation_id)
-VALUES (1,1,1,'pedestre',0,1,0,'Visita familiar','2026-04-08 14:00:00','2026-04-08 17:30:00','Porteiro Silva','Tio do morador','5a47affa6f1366945900e72987634b19331ad301b904ada6bcba20a4c1e24e45');
+INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,observacoes,codigo_condominio)
+VALUES (1,1,1,'pedestre',0,1,0,'Visita familiar','2026-04-08 14:00:00','2026-04-08 17:30:00','Porteiro Silva','Tio do morador', 'COND-001');
 
 -- Fernanda visitou Maria — entrou de carro pela garagem:
-INSERT INTO acessos (visitante_id,morador_id,funcionario_id,veiculo_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,correlation_id)
-VALUES (2,2,1,5,'garagem',0,1,1,'Visita social','2026-04-09 10:00:00','2026-04-09 12:00:00','Porteiro Silva','9b4dac4acd0b5a8736ec3f1e20033f7145c02c4c005760705fb49afd2e75cb4f');
+INSERT INTO acessos (visitante_id,morador_id,funcionario_id,veiculo_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,codigo_condominio)
+VALUES (2,2,1,5,'garagem',0,1,1,'Visita social','2026-04-09 10:00:00','2026-04-09 12:00:00','Porteiro Silva', 'COND-001');
 
 -- Marcos entregou pizza (portao de pedestres):
-INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,observacoes,correlation_id)
-VALUES (3,3,2,'pedestre',1,0,0,'Entrega - Pizza','2026-04-09 19:45:00','2026-04-09 19:52:00','Porteiro Marcos','Delivery de moto','15d13f5672421e32bebf4f400df0a93b73c3c00440b721d09786d45a00e59ee5');
+INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,observacoes,codigo_condominio)
+VALUES (3,3,2,'pedestre',1,0,0,'Entrega - Pizza','2026-04-09 19:45:00','2026-04-09 19:52:00','Porteiro Marcos','Delivery de moto', 'COND-001');
 
 -- Roberto esta dentro agora (manutencao na Ana — sem saida):
-INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,porteiro,correlation_id)
-VALUES (1,4,1,'pedestre',0,1,0,'Manutencao do ar-condicionado','Porteiro Silva','ce1922f0c1c846498028c0f3503f64da67a1e70a5248c8843184b93d1955c808');
+INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,porteiro,codigo_condominio)
+VALUES (1,4,1,'pedestre',0,1,0,'Manutencao do ar-condicionado','Porteiro Silva', 'COND-001');
 
 -- Camila visitou Maria (ja saiu):
-INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,correlation_id)
-VALUES (5,2,2,'pedestre',1,0,0,'Visita social - amiga','2026-04-07 15:00:00','2026-04-07 18:30:00','Porteiro Marcos','34a4f87d0ec41ace7d168c5233ce7f7cf4dcd201a5e9cae47ad600a213aa634d');
+INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,codigo_condominio)
+VALUES (5,2,2,'pedestre',1,0,0,'Visita social - amiga','2026-04-07 15:00:00','2026-04-07 18:30:00','Porteiro Marcos', 'COND-001');
 
 -- Jean Pierre fez manutencao na Dona Teresa (ja saiu):
-INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,observacoes,correlation_id)
-VALUES (6,8,1,'pedestre',1,1,0,'Manutencao - Ar condicionado','2026-04-08 09:00:00','2026-04-08 11:45:00','Porteiro Silva','Tecnico autorizado','ab432261a712123cda4f57c7c1177ab393e9ab07c4482e7d1bda7408931244cd');
+INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,observacoes,codigo_condominio)
+VALUES (6,8,1,'pedestre',1,1,0,'Manutencao - Ar condicionado','2026-04-08 09:00:00','2026-04-08 11:45:00','Porteiro Silva','Tecnico autorizado', 'COND-001');
 
 -- Sandra visitou Pedro (1a visita — ja saiu):
-INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,correlation_id)
-VALUES (7,3,2,'pedestre',0,1,0,'Visita familiar - irma','2026-04-06 10:00:00','2026-04-06 13:00:00','Porteiro Marcos','7a5370ca54a979745ee52be36df94ae72a6d115484010e525aacf28a24769a54');
+INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,codigo_condominio)
+VALUES (7,3,2,'pedestre',0,1,0,'Visita familiar - irma','2026-04-06 10:00:00','2026-04-06 13:00:00','Porteiro Marcos', 'COND-001');
 
 -- Sandra visitou Pedro (2a visita — ja saiu):
-INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,observacoes,correlation_id)
-VALUES (7,3,1,'pedestre',0,1,0,'Visita familiar - irma','2026-04-09 16:00:00','2026-04-09 20:00:00','Porteiro Silva','Trouxe bolo de aniversario','2c687ce34224518bffee47db0034995073d4a1246bf89e633b97072ce36390b8');
+INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,observacoes,codigo_condominio)
+VALUES (7,3,1,'pedestre',0,1,0,'Visita familiar - irma','2026-04-09 16:00:00','2026-04-09 20:00:00','Porteiro Silva','Trouxe bolo de aniversario', 'COND-001');
 
 -- Marcos fez entrega de restaurante (ja saiu):
-INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,observacoes,correlation_id)
-VALUES (3,8,2,'pedestre',1,0,0,'Entrega - Restaurante Japones','2026-04-09 12:30:00','2026-04-09 12:38:00','Porteiro Marcos','Delivery de moto','00de89a3b6947f1054e60d4785498310a48b18d9728cf9bae81765e70d34f98f');
+INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,observacoes,codigo_condominio)
+VALUES (3,8,2,'pedestre',1,0,0,'Entrega - Restaurante Japones','2026-04-09 12:30:00','2026-04-09 12:38:00','Porteiro Marcos','Delivery de moto', 'COND-001');
 
 -- Fernanda esta visitando Lucia AGORA (sem saida):
-INSERT INTO acessos (visitante_id,morador_id,funcionario_id,veiculo_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,porteiro,observacoes,correlation_id)
-VALUES (2,6,1,5,'garagem',0,1,1,'Reuniao de condominio informal','Porteiro Silva','Veio de carro, placa QRS-5678','6cd1121564ac10c292b20fecd66b646283ffcc68a14096fcc310564c74a26db7');
+INSERT INTO acessos (visitante_id,morador_id,funcionario_id,veiculo_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,porteiro,observacoes,codigo_condominio)
+VALUES (2,6,1,5,'garagem',0,1,1,'Reuniao de condominio informal','Porteiro Silva','Veio de carro, placa QRS-5678', 'COND-001');
 
 
 -- ============================================================================
@@ -839,7 +836,7 @@ SELECT
 -- Sua resposta aqui:
 
 -- RESPOSTA 1:
--- INSERT INTO moradores (nome, cpf, telefone, correlation_id)
+-- INSERT INTO moradores (nome, cpf, telefone, codigo_condominio)
 -- VALUES ('Luiza Barbosa', '22233344455', '83944556677', '<hash-sha256>');
 
 
@@ -848,9 +845,9 @@ SELECT
 -- Sua resposta aqui:
 
 -- RESPOSTA 2:
--- INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone, correlation_id)
--- VALUES ('COND-001', '401', 'B', 4, 'apartamento', '401', '<hash>');
--- INSERT INTO morador_residencia (morador_id, residencia_id, tipo_morador, correlation_id)
+-- INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone)
+-- VALUES ('COND-001', '401', 'B', 4, 'apartamento', '401');
+-- INSERT INTO morador_residencia (morador_id, residencia_id, tipo_morador, codigo_condominio)
 -- VALUES (11, 11, 'inquilino', '<hash>');
 
 
@@ -929,7 +926,7 @@ SELECT
 -- INDEX         — estrutura de busca rapida (como indice de livro)
 -- LEFT JOIN     — retorna todos da tabela esquerda, mesmo sem correspondencia
 -- SHA-256       — funcao que transforma texto em hash de 64 hex chars
--- CORRELATION_ID — hash usado como ID global para sync entre bancos
+-- CODIGO_CONDOMINIO — identificador do condomínio, não único entre registros do mesmo condomínio
 -- LGPD          — Lei Geral de Protecao de Dados (Lei 13.709/2018)
 -- SOFT DELETE   — desativar (ativo=0) em vez de deletar — preserva historico
 -- JUNCTION TABLE — tabela intermediaria que resolve relacao N:N
@@ -949,7 +946,7 @@ SELECT
 -- ──────────────────────────────────────────────
 -- RESPOSTA 1: Inserir novo morador
 -- ──────────────────────────────────────────────
-INSERT INTO moradores (nome, cpf, telefone, correlation_id)
+INSERT INTO moradores (nome, cpf, telefone, codigo_condominio)
 VALUES ('Luiza Barbosa', '22233344455', '83944556677',
         'gabarito_resp1_luiza_barbosa_22233344455');
 
@@ -960,11 +957,11 @@ SELECT id, nome, cpf, telefone FROM moradores WHERE cpf = '22233344455';
 -- ──────────────────────────────────────────────
 -- RESPOSTA 2: Residencia + vinculo morador_residencia
 -- ──────────────────────────────────────────────
-INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone, correlation_id)
+INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone)
 VALUES ('COND-001', '401', 'B', 4, 'apartamento', '401',
         'gabarito_resp2_residencia_401_bloco_b');
 
-INSERT INTO morador_residencia (morador_id, residencia_id, tipo_morador, correlation_id)
+INSERT INTO morador_residencia (morador_id, residencia_id, tipo_morador, codigo_condominio)
 VALUES (
     (SELECT id FROM moradores WHERE cpf = '22233344455'),
     (SELECT id FROM residencias WHERE numero_residencia = '401' AND bloco = 'B'),
