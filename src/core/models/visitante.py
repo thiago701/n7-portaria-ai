@@ -54,11 +54,11 @@ from src.core.models.base import parse_date, parse_datetime
 # O banco aceita apenas estes valores (CHECK constraint).
 # RG e o padrao se nao informar nada.
 
-TIPOS_DOCUMENTO_VALIDOS = ("RG", "CNH", "PASSAPORTE", "OUTRO")
-
-
+TIPOS_DOCUMENTO_VALIDOS = ("RG", "CNH", "PASSAPORTE", "OUTRO"
 @dataclass
-class Visitante:
+class Visitantes:
+
+__tablename__ = "visitantes"
     """
     Representa um visitante do condominio.
 
