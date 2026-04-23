@@ -151,7 +151,7 @@ CREATE TABLE residencias (
 --  ANALOGIA: Em um hospital, 'consultas' conecta pacientes a medicos.
 --  Aqui, 'morador_residencia' conecta moradores a residencias.
 -- ======================================================================
-CREATE TABLE morador_residencia (
+CREATE TABLE morador_residencias (
     id                    INTEGER   PRIMARY KEY AUTOINCREMENT,
 
     morador_id            INTEGER   NOT NULL,
