@@ -1,0 +1,1037 @@
+-- ============================================================================
+-- PROJETO PORTARIA INTELIGENTE — BANCO DE DADOS COMPLETO (v1.0 - FINAL)
+-- ============================================================================
+-- Aluno: Ademilson
+-- Aula 02 (Ampliada) — Banco de Dados + Estrutura Completa do Projeto
+-- Data da Aula: 09/04/2026
+--
+-- COMO EXECUTAR:
+--   sqlite3 portaria.db < projeto_portaria_completo.sql
+--
+--   Ou no Python:
+--   import sqlite3
+--   conn = sqlite3.connect('portaria.db')
+--   with open('projeto_portaria_completo.sql', 'r') as f:
+--       conn.executescript(f.read())
+-- ============================================================================
+
+PRAGMA foreign_keys = ON;
+-- Ativa verificacao de chaves estrangeiras.
+-- Por padrao o SQLite NAO verifica FKs — este PRAGMA ativa!
+
+-- ============================================================================
+-- LIMPEZA: DROP TABLE IF EXISTS na ordem correta para evitar erros de FK.
+-- ============================================================================
+DROP TABLE IF EXISTS acessos;
+DROP TABLE IF EXISTS morador_residencia;
+DROP TABLE IF EXISTS config_acesso_morador;
+DROP TABLE IF EXISTS veiculos;
+DROP TABLE IF EXISTS assinatura_condominio;
+DROP TABLE IF EXISTS visitantes;
+DROP TABLE IF EXISTS funcionarios;
+DROP TABLE IF EXISTS residencias;
+DROP TABLE IF EXISTS moradores;
+
+-- ============================================================================
+-- PARTE 1: CRIACAO DAS TABELAS
+-- ============================================================================
+
+-- ======================================================================
+--  TABELA 1: moradores
+--  Dados PESSOAIS de cada morador (CPF, foto, biometria, LGPD).
+--  Dados da UNIDADE estao em 'residencias'.
+-- ======================================================================
+CREATE TABLE moradores (
+    id                    INTEGER   PRIMARY KEY AUTOINCREMENT,
+
+    nome                  TEXT      NOT NULL,
+    -- Nome completo. Obrigatorio.
+
+    cpf                   TEXT      UNIQUE NOT NULL
+                                    CHECK(length(cpf) = 11),
+    -- CPF sem pontos (11 digitos). UNIQUE = nao repete. TEXT = preserva zero inicial.
+
+    telefone              TEXT,
+    email                 TEXT      CHECK(email LIKE '%@%.%'),
+    dt_nascimento         DATE,
+
+    foto                  BLOB,
+    -- Bytes da foto (JPG/PNG). Em producao: open('foto.jpg','rb').read()
+
+    dt_foto_validade      DATE,
+    -- Renovar a cada 2 anos — pessoas mudam com o tempo!
+
+    biometria             BLOB,
+    -- Bytes do template biometrico (impressao digital).
+
+    dt_biometria_validade DATE,
+    -- Validade da biometria. Renovar a cada 5 anos. --- Caso tenha uma necessidade especial essa renovação acontecerá na portaria. 
+    --- Se por acusa houver um acidente (tipo corte na digital) que possa produzir uma cicatriz aí diminue o tempo de validade
+
+    -- LGPD (Lei 13.709/2018) ---------------------------------------------------
+    termos_lgpd           BLOB,
+    -- Bytes do PDF dos Termos de Uso aceitos pelo morador.
+    -- Guardamos o DOCUMENTO EXATO — evidencia juridica.
+
+    dt_aceite_lgpd        DATETIME,
+    -- Timestamp do aceite. NULL = ainda nao formalizado.
+    -- ---------------------------------------------------------------------------
+
+    ativo                 BOOLEAN   DEFAULT 1
+                                    CHECK(ativo IN (0, 1)),
+    -- 1 = ativo. 0 = soft delete (dado preservado, morador "invisivel").
+
+    codigo_condominio        TEXT      NOT NULL,
+    -- SHA-256 de 'moradores:{cpf}'. Usado para sync sem duplicatas.
+
+    dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP,
+    dt_atualizado_em      DATETIME  DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- ======================================================================
+--  TABELA 2: residencias
+--  Dados de cada UNIDADE HABITACIONAL do condominio.
+--
+--  >> CAMPOS DO ADEMILSON: tipo_moradia, interfone, observacao (v5.0)
+-- ======================================================================
+CREATE TABLE residencias (
+    id                    INTEGER   PRIMARY KEY AUTOINCREMENT,
+
+    codigo_condominio     TEXT      NOT NULL,
+    -- Codigo do condominio. Ex: 'COND-001'.
+
+    numero_residencia     TEXT      NOT NULL,
+    -- Numero da unidade: '101', '101-A', '08' (lote), 'Cobertura'.
+
+    bloco                 TEXT,
+    -- Ex: 'A', 'B', 'Torre 1'. NULL em condominios horizontais (casas).
+
+    quadra                TEXT,
+    -- Ex: '01', '05'. NULL em condominios verticais (predios).
+
+    andar                 INTEGER,
+    -- Numero do andar. NULL em casas.
+
+    -- >> SUGESTAO DO ADEMILSON (v5.0) -----------------------------------------
+    tipo_moradia          TEXT      DEFAULT 'apartamento'
+                                    CHECK(tipo_moradia IN ('apartamento','casa','comercial','outro')),
+    -- Tipo fisico da unidade.
+    -- SUGESTAO DO ADEMILSON: ele percebeu que o sistema precisa saber
+    -- se e casa ou apartamento para o porteiro saber como chamar o morador!
+
+    interfone             TEXT,
+    -- Codigo do interfone desta unidade. Ex: '101', '1-A'.
+    -- SUGESTAO DO ADEMILSON: campo fundamental para a portaria chamar o morador!
+
+    observacao            TEXT,
+    -- Observacoes sobre a unidade. Ex: 'Cobertura — acesso especial'.
+    -- SUGESTAO DO ADEMILSON: anotacoes livres que o porteiro precisa ver.
+    -- --------------------------------------------------------------------------
+
+    ativo                 BOOLEAN   DEFAULT 1
+                                    CHECK(ativo IN (0, 1)),
+
+
+    dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP,
+    dt_atualizado_em      DATETIME  DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- ======================================================================
+--  TABELA 3: morador_residencia (JUNCTION TABLE — relacao N:N)
+--  Conecta moradores a residencias.
+--
+--  POR QUE EXISTE?
+--  Um morador pode ser proprietario de varias unidades.
+--  Uma unidade pode ter varios moradores (familia, herdeiros).
+--  Isso e relacao MUITOS PARA MUITOS (N:N) — precisa de tabela intermediaria.
+--
+--  ANALOGIA: Em um hospital, 'consultas' conecta pacientes a medicos.
+--  Aqui, 'morador_residencia' conecta moradores a residencias.
+-- ======================================================================
+CREATE TABLE morador_residencia (
+    id                    INTEGER   PRIMARY KEY AUTOINCREMENT,
+
+    morador_id            INTEGER   NOT NULL,
+    residencia_id         INTEGER   NOT NULL,
+
+    tipo_morador          TEXT      DEFAULT 'proprietario'
+                                    CHECK(tipo_morador IN ('proprietario', 'inquilino')),
+    -- O mesmo morador pode ser proprietario de uma unidade e inquilino de outra!
+
+    dt_inicio             DATE      NOT NULL DEFAULT (DATE('now')),
+    dt_fim                DATE,
+    -- NULL = ainda mora aqui.
+
+    ativo                 BOOLEAN   DEFAULT 1
+                                    CHECK(ativo IN (0, 1)),
+
+    codigo_condominio        TEXT      NOT NULL,
+
+    dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (morador_id)    REFERENCES moradores(id),
+    FOREIGN KEY (residencia_id) REFERENCES residencias(id),
+    UNIQUE (morador_id, residencia_id, dt_inicio)
+    -- Evita duplicata. Permite historico (mesmo morador pode sair e voltar).
+);
+
+
+-- ======================================================================
+--  TABELA 4: visitantes
+--  Pessoas que visitam o condominio.
+-- ======================================================================
+CREATE TABLE visitantes (
+    id                    INTEGER   PRIMARY KEY AUTOINCREMENT,
+
+    nome                  TEXT      NOT NULL,
+    documento             TEXT      NOT NULL,
+
+    tipo_documento        TEXT      DEFAULT 'RG'
+                                    CHECK(tipo_documento IN ('RG', 'CNH', 'PASSAPORTE', 'OUTRO')),
+
+    telefone              TEXT,
+
+    foto                  BLOB,
+    -- Foto do visitante. Util para reconhecimento facial futuro.
+
+    bloqueado             BOOLEAN   DEFAULT 0
+                                    CHECK(bloqueado IN (0, 1)),
+    -- 1 = bloqueado — porta nao abre, porteiro e alertado.
+
+    motivo_bloqueio       TEXT,
+    -- Se bloqueado = 1, por que? Registra o historico.
+
+    dt_validade_inicio    DATE,
+    -- A partir desta data o visitante pode entrar. NULL = sem restricao.
+
+    dt_validade_fim       DATE      CHECK(
+                                        dt_validade_fim IS NULL OR
+                                        dt_validade_fim >= dt_validade_inicio),
+    -- Ate esta data. NULL = sem prazo. CHECK evita datas invertidas.
+
+    codigo_condominio        TEXT      NOT NULL,
+
+    dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- ======================================================================
+--  TABELA 5: funcionarios
+--  Porteiros, zeladores, administradores.
+--
+--  >> CONTRIBUICAO DO ADEMILSON (v3.0): ele identificou que o sistema
+--     precisava saber QUEM registrou cada acesso — origem desta tabela!
+-- ======================================================================
+CREATE TABLE funcionarios (
+    id                    INTEGER   PRIMARY KEY AUTOINCREMENT,
+    nome                  TEXT      NOT NULL,
+    cpf                   TEXT      UNIQUE NOT NULL  CHECK(length(cpf) = 11),
+    cargo                 TEXT      DEFAULT 'porteiro'
+                                    CHECK(cargo IN ('porteiro','zelador','administrador','outro')),
+    setor                 TEXT,
+    -- Texto livre: 'portaria', 'administracao', 'limpeza', 'manutencao'
+
+    login                 TEXT      UNIQUE NOT NULL,
+    senha_hash            TEXT      NOT NULL  CHECK(length(senha_hash) = 64),
+    -- SHA-256 da senha (64 hex chars). NUNCA armazenar senha em texto puro!
+    -- Python: import hashlib; hashlib.sha256('senha'.encode()).hexdigest()
+
+    ativo                 BOOLEAN   DEFAULT 1  CHECK(ativo IN (0, 1)),
+    codigo_condominio        TEXT      NOT NULL,
+    dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- ======================================================================
+--  TABELA 6: veiculos
+--  Carros e motos de moradores, funcionarios e visitantes.
+--
+--  >> CONTRIBUICAO DO ADEMILSON (v3.0): ele sugeriu 'carro' e 'placa'
+--     diretamente em moradores — o raciocinio estava certo!
+--     Refinamos para uma tabela separada, que tambem serve funcionarios
+--     e visitantes. Excelente instinto de modelagem!
+-- ======================================================================
+CREATE TABLE veiculos (
+    id                    INTEGER   PRIMARY KEY AUTOINCREMENT,
+    placa                 TEXT      UNIQUE NOT NULL  CHECK(length(placa) >= 7),
+    -- Formato: 'ABC-1234' (antigo) ou 'ABC1D23' (Mercosul). Minimo 7 chars.
+
+    modelo                TEXT,
+    cor                   TEXT,
+
+    morador_id            INTEGER,
+    funcionario_id        INTEGER,
+    visitante_id          INTEGER,
+    -- Apenas UM deve ser preenchido — os outros ficam NULL.
+
+    ativo                 BOOLEAN   DEFAULT 1  CHECK(ativo IN (0, 1)),
+    codigo_condominio        TEXT      NOT NULL,
+    dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (morador_id)      REFERENCES moradores(id),
+    FOREIGN KEY (funcionario_id)  REFERENCES funcionarios(id),
+    FOREIGN KEY (visitante_id)    REFERENCES visitantes(id)
+);
+
+
+-- ======================================================================
+--  TABELA 7: acessos
+--  Log de entradas e saidas. NUNCA deletar registros desta tabela!
+--
+--  FATORES DE AUTENTICACAO (2FA):
+--    auth_senha   = porteiro liberou com senha manual
+--    auth_digital = leitor biometrico confirmou digital
+--    auth_facial  = camera reconheceu o rosto
+--  Pelo menos 1 dos tres deve ser verdadeiro (CHECK garante isso).
+-- ======================================================================
+CREATE TABLE acessos (
+    id                    INTEGER   PRIMARY KEY AUTOINCREMENT,
+
+    visitante_id          INTEGER   NOT NULL,
+    morador_id            INTEGER,
+    -- Morador visitado. NULL = servico geral sem morador especifico.
+
+    funcionario_id        INTEGER,
+    -- Porteiro que registrou este acesso.
+
+    veiculo_id            INTEGER,
+    -- Veiculo usado. NULL = veio a pe.
+
+    tipo_acesso           TEXT      DEFAULT 'pedestre'
+                                    CHECK(tipo_acesso IN ('pedestre', 'garagem')),
+    -- 'pedestre' = portao principal
+    -- 'garagem'  = cancela do estacionamento
+
+    auth_senha            BOOLEAN   DEFAULT 0  CHECK(auth_senha IN (0,1)),
+    auth_digital          BOOLEAN   DEFAULT 0  CHECK(auth_digital IN (0,1)),
+    auth_facial           BOOLEAN   DEFAULT 0  CHECK(auth_facial IN (0,1)),
+
+    motivo                TEXT      NOT NULL,
+    dt_entrada_em         DATETIME  NOT NULL  DEFAULT CURRENT_TIMESTAMP,
+    dt_saida_em           DATETIME,
+    -- NULL = pessoa AINDA ESTA DENTRO do condominio.
+
+    porteiro              TEXT,
+    -- Nome do porteiro em texto livre (compatibilidade).
+
+    observacoes           TEXT,
+    codigo_condominio        TEXT      NOT NULL,
+
+    CHECK(auth_senha + auth_digital + auth_facial >= 1),
+    -- Nenhum acesso pode ser registrado sem autenticacao!
+
+    FOREIGN KEY (visitante_id)   REFERENCES visitantes(id),
+    FOREIGN KEY (morador_id)     REFERENCES moradores(id),
+    FOREIGN KEY (funcionario_id) REFERENCES funcionarios(id),
+    FOREIGN KEY (veiculo_id)     REFERENCES veiculos(id)
+);
+
+
+-- ======================================================================
+--  TABELA 8: config_acesso_morador
+--  Politica de autenticacao individual por morador.
+--  Quando ausente, o sistema aplica o padrao do condominio (1 fator).
+-- ======================================================================
+CREATE TABLE config_acesso_morador (
+    id                    INTEGER   PRIMARY KEY AUTOINCREMENT,
+    morador_id            INTEGER   UNIQUE NOT NULL,
+    -- UNIQUE: cada morador tem no maximo 1 config (relacao 1:1).
+
+    fatores_requeridos    INTEGER   DEFAULT 1  CHECK(fatores_requeridos IN (1, 2)),
+    -- 1 = qualquer fator aceito
+    -- 2 = dois fatores obrigatorios (ex: digital + facial)
+
+    permite_senha         BOOLEAN   DEFAULT 1  CHECK(permite_senha IN (0, 1)),
+    permite_digital       BOOLEAN   DEFAULT 1  CHECK(permite_digital IN (0, 1)),
+    permite_facial        BOOLEAN   DEFAULT 0  CHECK(permite_facial IN (0, 1)),
+    -- DEFAULT 0 para facial: exige hardware de camera especial.
+
+    codigo_condominio        TEXT      NOT NULL,
+    dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP,
+    dt_atualizado_em      DATETIME  DEFAULT CURRENT_TIMESTAMP,
+
+    CHECK(permite_senha + permite_digital + permite_facial >= 1),
+    -- Pelo menos 1 tipo de autenticacao deve estar habilitado.
+
+    FOREIGN KEY (morador_id) REFERENCES moradores(id)
+);
+
+
+-- ======================================================================
+--  TABELA 9: assinatura_condominio
+--  Contrato do CONDOMINIO com o sistema n7-portaria-ai.
+--  1 registro por condominio (UNIQUE codigo_condominio).
+-- ======================================================================
+CREATE TABLE assinatura_condominio (
+    id                    INTEGER   PRIMARY KEY AUTOINCREMENT,
+
+    codigo_condominio     TEXT      UNIQUE NOT NULL,
+    -- Codigo interno. UNIQUE = 1 assinatura por condominio. Ex: 'COND-001'
+
+    nome_condominio       TEXT      NOT NULL,
+    endereco              TEXT,
+
+    responsavel_id        INTEGER,
+    -- FK → moradores.id (sindico que assinou o contrato).
+
+    numero_contrato       TEXT      UNIQUE NOT NULL,
+    contrato              BLOB,
+    -- Bytes do PDF do contrato assinado.
+
+    dt_ativacao           DATE,
+    dt_vigencia_inicio    DATE      NOT NULL,
+    dt_vigencia_fim       DATE      CHECK(
+                                        dt_vigencia_fim IS NULL OR
+                                        dt_vigencia_fim >= dt_vigencia_inicio),
+
+    status                TEXT      DEFAULT 'ativo'
+                                    CHECK(status IN ('ativo','pendente','vencido','cancelado')),
+
+    observacoes           TEXT,
+    dt_criado_em          DATETIME  DEFAULT CURRENT_TIMESTAMP,
+    dt_atualizado_em      DATETIME  DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (responsavel_id) REFERENCES moradores(id)
+);
+
+
+-- ============================================================================
+-- PARTE 2: INDICES DE DESEMPENHO
+-- ============================================================================
+-- Sem indice = banco le TODAS as linhas (lento).
+-- Com indice = banco vai direto (log2 N — muito rapido).
+-- PRIMARY KEY e UNIQUE ja criam indices automaticamente — nao precisam de CREATE INDEX.
+
+CREATE INDEX idx_moradores_nome        ON moradores(nome);
+CREATE INDEX idx_moradores_ativo       ON moradores(ativo);
+
+CREATE INDEX idx_residencias_cond      ON residencias(codigo_condominio);
+CREATE INDEX idx_residencias_num       ON residencias(numero_residencia);
+CREATE INDEX idx_residencias_tipo      ON residencias(tipo_moradia);
+
+CREATE INDEX idx_mr_morador            ON morador_residencia(morador_id);
+CREATE INDEX idx_mr_residencia         ON morador_residencia(residencia_id);
+CREATE INDEX idx_mr_ativo              ON morador_residencia(ativo);
+
+CREATE INDEX idx_visitantes_documento  ON visitantes(documento);
+CREATE INDEX idx_visitantes_bloqueado  ON visitantes(bloqueado);
+
+CREATE INDEX idx_funcionarios_cargo    ON funcionarios(cargo);
+
+CREATE INDEX idx_veiculos_morador      ON veiculos(morador_id);
+
+CREATE INDEX idx_acessos_entrada       ON acessos(dt_entrada_em);
+CREATE INDEX idx_acessos_visitante     ON acessos(visitante_id);
+CREATE INDEX idx_acessos_morador       ON acessos(morador_id);
+CREATE INDEX idx_acessos_funcionario   ON acessos(funcionario_id);
+CREATE INDEX idx_acessos_veiculo       ON acessos(veiculo_id);
+
+CREATE INDEX idx_assinatura_status     ON assinatura_condominio(status);
+CREATE INDEX idx_assinatura_vig_fim    ON assinatura_condominio(dt_vigencia_fim);
+
+
+-- ============================================================================
+-- PARTE 3: DADOS DE EXEMPLO
+-- ============================================================================
+
+-- ──────────────────────────────────────────────
+-- 3.1 — Moradores (10 registros)
+-- ──────────────────────────────────────────────
+-- codigo_condominio = identificador do condomínio (usado para agrupar registros por condomínio).
+-- Em producao: hashlib.sha256(f'moradores:{cpf}'.encode()).hexdigest()
+
+INSERT INTO moradores (nome, cpf, telefone, email, ativo, dt_aceite_lgpd, codigo_condominio)
+VALUES ('Joao Carlos da Silva','11122233344','83999001122','joao.silva@email.com',1,'2026-04-09 10:00:00', 'COND-001');
+
+INSERT INTO moradores (nome, cpf, telefone, email, ativo, dt_aceite_lgpd, codigo_condominio)
+VALUES ('Maria Aparecida Santos','55566677788','83988112233','maria.santos@email.com',1,'2026-04-09 10:00:00', 'COND-001');
+
+INSERT INTO moradores (nome, cpf, telefone, email, ativo, codigo_condominio)
+VALUES ('Pedro Henrique Oliveira','99988877766','83977223344','pedro.oliveira@email.com',1, 'COND-001');
+
+INSERT INTO moradores (nome, cpf, telefone, email, ativo, dt_aceite_lgpd, codigo_condominio)
+VALUES ('Ana Paula Ferreira','44433322211','83966334455','ana.ferreira@email.com',1,'2026-04-09 10:00:00', 'COND-001');
+
+INSERT INTO moradores (nome, cpf, telefone, ativo, codigo_condominio)
+VALUES ('Carlos Eduardo Lima','77788899900','83955445566',1, 'COND-001');
+
+INSERT INTO moradores (nome, cpf, telefone, email, ativo, dt_aceite_lgpd, codigo_condominio)
+VALUES ('Lucia Fernandes Gomes','12312312300','83922001133','lucia.gomes@email.com',1,'2026-04-09 10:00:00', 'COND-001');
+
+INSERT INTO moradores (nome, cpf, telefone, ativo, codigo_condominio)
+VALUES ('Rafael Souza Mendes','45645645600','83911009988',1, 'COND-001');
+
+INSERT INTO moradores (nome, cpf, telefone, email, ativo, dt_aceite_lgpd, codigo_condominio)
+VALUES ('Dona Teresa Albuquerque','78978978700','83900112233','teresa.albuquerque@email.com',1,'2026-04-09 10:00:00', 'COND-001');
+
+INSERT INTO moradores (nome, cpf, telefone, email, ativo, codigo_condominio)
+VALUES ('Bruno Martins Costa','14725836900','83988776655','bruno.martins@email.com',1, 'COND-001');
+
+INSERT INTO moradores (nome, cpf, telefone, email, ativo, codigo_condominio)
+VALUES ('Sergio Ramos Pereira','96385274100','83977665544','sergio.ramos@email.com',0, 'COND-001');
+-- Sergio: ativo=0 = soft delete (ex-morador que se mudou)
+
+-- Atualizar fotos e biometrias dos moradores que as possuem:
+UPDATE moradores SET foto=NULL, dt_foto_validade='2028-04-09', biometria=NULL, dt_biometria_validade='2028-04-09' WHERE cpf='11122233344';
+UPDATE moradores SET foto=NULL, dt_foto_validade='2028-04-09' WHERE cpf='55566677788';
+UPDATE moradores SET foto=NULL, dt_foto_validade='2028-04-09', biometria=NULL, dt_biometria_validade='2028-04-09' WHERE cpf='44433322211';
+UPDATE moradores SET biometria=NULL, dt_biometria_validade='2028-04-09' WHERE cpf='12312312300';
+UPDATE moradores SET foto=NULL, dt_foto_validade='2028-04-09', biometria=NULL, dt_biometria_validade='2028-04-09' WHERE cpf='78978978700';
+UPDATE moradores SET foto=NULL, dt_foto_validade='2025-03-15' WHERE cpf='14725836900';
+-- Bruno: foto VENCIDA em mar/2025 — a consulta de fotos vencidas vai encontra-lo!
+
+
+-- ──────────────────────────────────────────────
+-- 3.2 — Residencias (10 unidades)
+-- ──────────────────────────────────────────────
+-- Tipos cobertos:
+--   [V] VERTICAL   — bloco + andar (apartamentos)
+--   [H] HORIZONTAL — quadra (casas/lotes)
+--   [S] SIMPLES    — so andar (predinho unico sem bloco)
+
+-- [V] Apto 101 — Bloco A, 1o andar
+INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone)
+VALUES ('COND-001','101','A',1,'apartamento','101');
+
+-- [V] Apto 202 — Bloco A, 2o andar
+INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone)
+VALUES ('COND-001','202','A',2,'apartamento','202');
+
+-- [V] Apto 303 — Bloco B, 3o andar
+INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone)
+VALUES ('COND-001','303','B',3,'apartamento','303');
+
+-- [V] Apto 104 — Bloco A, 1o andar
+INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone)
+VALUES ('COND-001','104','A',1,'apartamento','104');
+
+-- [V] Apto 501 — Bloco C, 5o andar
+INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone)
+VALUES ('COND-001','501','C',5,'apartamento','501');
+
+-- [V] Apto 102 — Bloco A, 1o andar
+INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone)
+VALUES ('COND-001','102','A',1,'apartamento','102');
+
+-- [H] Lote 08 — Quadra 03 (condominio de casas)
+INSERT INTO residencias (codigo_condominio, numero_residencia, quadra, tipo_moradia, observacao)
+VALUES ('COND-001','08','03','casa','Lote 08 da Quadra 03');
+
+-- [H] Lote 14 — Quadra 07 (condominio de casas)
+INSERT INTO residencias (codigo_condominio, numero_residencia, quadra, tipo_moradia, observacao)
+VALUES ('COND-001','14','07','casa','Lote 14 da Quadra 07');
+
+-- [S] Apto 301 — predinho unico sem bloco
+INSERT INTO residencias (codigo_condominio, numero_residencia, andar, tipo_moradia, interfone, observacao)
+VALUES ('COND-001','301',3,'apartamento','301','Predinho sem bloco');
+
+-- [V] Apto 402 — Bloco B, 4o andar (ex-morador Sergio)
+INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone)
+VALUES ('COND-001','402','B',4,'apartamento','402');
+
+
+-- ──────────────────────────────────────────────
+-- 3.3 — morador_residencia (quem mora onde)
+-- ──────────────────────────────────────────────
+-- DEMO N:N: Ana Paula (id=4) e proprietaria de 2 unidades!
+
+INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,codigo_condominio) VALUES (1,1,'proprietario','2024-01-10', 'COND-001');
+INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,codigo_condominio) VALUES (2,2,'inquilino','2025-06-01', 'COND-001');
+INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,codigo_condominio) VALUES (3,3,'proprietario','2020-03-01', 'COND-001');
+INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,codigo_condominio) VALUES (4,4,'proprietario','2023-03-15', 'COND-001');
+INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,codigo_condominio) VALUES (4,1,'proprietario','2023-03-15', 'COND-001');
+-- Ana Paula tambem e co-proprietaria do Apto 101 (herdou do pai)!
+INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,codigo_condominio) VALUES (5,5,'inquilino','2024-01-01', 'COND-001');
+INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,codigo_condominio) VALUES (6,6,'proprietario','2019-07-01', 'COND-001');
+INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,codigo_condominio) VALUES (7,7,'inquilino','2022-01-15', 'COND-001');
+INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,codigo_condominio) VALUES (8,8,'proprietario','2015-05-20', 'COND-001');
+INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,codigo_condominio) VALUES (9,9,'inquilino','2023-08-01', 'COND-001');
+INSERT INTO morador_residencia (morador_id,residencia_id,tipo_morador,dt_inicio,codigo_condominio) VALUES (10,10,'proprietario','2018-02-01', 'COND-001');
+
+
+-- ──────────────────────────────────────────────
+-- 3.4 — Config de seguranca por morador (5 registros)
+-- ──────────────────────────────────────────────
+-- Moradores sem config usam o padrao: 1 fator, qualquer tipo.
+
+INSERT INTO config_acesso_morador (morador_id,fatores_requeridos,permite_senha,permite_digital,permite_facial,codigo_condominio)
+VALUES (1,2,0,1,1, 'COND-001');
+-- Joao: 2 fatores obrigatorios, so biometria (sem senha)
+
+INSERT INTO config_acesso_morador (morador_id,fatores_requeridos,permite_senha,permite_digital,permite_facial,codigo_condominio)
+VALUES (2,1,1,1,0, 'COND-001');
+-- Maria: 1 fator, senha ou digital (sem camera)
+
+INSERT INTO config_acesso_morador (morador_id,fatores_requeridos,permite_senha,permite_digital,permite_facial,codigo_condominio)
+VALUES (4,2,1,1,0, 'COND-001');
+-- Ana: 2 fatores, senha + digital
+
+INSERT INTO config_acesso_morador (morador_id,fatores_requeridos,permite_senha,permite_digital,permite_facial,codigo_condominio)
+VALUES (6,1,0,1,0, 'COND-001');
+-- Lucia: 1 fator, so digital (sem senha por preferencia)
+
+INSERT INTO config_acesso_morador (morador_id,fatores_requeridos,permite_senha,permite_digital,permite_facial,codigo_condominio)
+VALUES (8,2,0,1,1, 'COND-001');
+-- Dona Teresa: 2 fatores, digital + facial (maximo de seguranca)
+
+
+-- ──────────────────────────────────────────────
+-- 3.5 — Assinatura do condominio (1 registro)
+-- ──────────────────────────────────────────────
+INSERT INTO assinatura_condominio (
+    codigo_condominio, nome_condominio, endereco,
+    numero_contrato, dt_ativacao, dt_vigencia_inicio,
+    status, observacoes
+) VALUES (
+    'COND-001',
+    'Residencial Parque das Flores',
+    'Rua das Palmeiras, 100, Jardim Botanico, Joao Pessoa - PB',
+    '2026/0001-N7',
+    '2026-04-09',
+    '2026-04-09',
+    'ativo',
+    'Assinatura inicial do sistema n7-portaria-ai', 'COND-001'
+);
+
+
+-- ──────────────────────────────────────────────
+-- 3.6 — Visitantes (8 registros)
+-- ──────────────────────────────────────────────
+
+-- Roberto: amigo do Joao — visita avulsa
+INSERT INTO visitantes (nome,documento,tipo_documento,telefone,codigo_condominio)
+VALUES ('Roberto Almeida','1234567','RG','83911112222', 'COND-001');
+
+-- Fernanda: amiga da Maria — visita avulsa
+INSERT INTO visitantes (nome,documento,tipo_documento,telefone,codigo_condominio)
+VALUES ('Fernanda Costa','98765432101','CNH','83933334444', 'COND-001');
+
+-- Marcos: entregador recorrente
+INSERT INTO visitantes (nome,documento,tipo_documento,telefone,codigo_condominio)
+VALUES ('Marcos Delivery Pizza','7654321','RG','83955556666', 'COND-001');
+
+-- Jose: BLOQUEADO — tentativa de acesso nao autorizado
+INSERT INTO visitantes (nome,documento,tipo_documento,bloqueado,motivo_bloqueio,codigo_condominio)
+VALUES ('Jose Suspeito','0000000','RG',1,'Tentativa de acesso nao autorizado em 01/04/2026', 'COND-001');
+
+-- Jean Pierre: tecnico estrangeiro — autorizado apenas durante obras (10/04 a 30/04)
+INSERT INTO visitantes (nome,documento,tipo_documento,telefone,dt_validade_inicio,dt_validade_fim,codigo_condominio)
+VALUES ('Jean Pierre Dubois','FR12345678','PASSAPORTE','83900998877','2026-04-10','2026-04-30', 'COND-001');
+
+-- Camila: sobrinha da Lucia — morando temporariamente (mai a jul/2026)
+INSERT INTO visitantes (nome,documento,tipo_documento,telefone,dt_validade_inicio,dt_validade_fim,codigo_condominio)
+VALUES ('Camila Rodrigues','55544433322','CNH','83944223311','2026-05-01','2026-07-31', 'COND-001');
+
+-- Sandra: irma do Pedro — acesso permanente a partir de abr/2026
+INSERT INTO visitantes (nome,documento,tipo_documento,telefone,dt_validade_inicio,codigo_condominio)
+VALUES ('Sandra Oliveira','3216549','RG','83966778899','2026-04-09', 'COND-001');
+
+-- Ricardo: BLOQUEADO — comportamento inadequado
+INSERT INTO visitantes (nome,documento,tipo_documento,bloqueado,motivo_bloqueio,codigo_condominio)
+VALUES ('Ricardo Problema','1111111','RG',1,'Comportamento agressivo com porteiro em 28/03/2026', 'COND-001');
+
+
+-- ──────────────────────────────────────────────
+-- 3.7 — Funcionarios (5 registros)
+-- ──────────────────────────────────────────────
+-- senha_hash abaixo = SHA-256 de '' (string vazia) — trocar em producao!
+
+INSERT INTO funcionarios (nome,cpf,cargo,setor,login,senha_hash,codigo_condominio)
+VALUES ('Jose Silva Santos','10120230340','porteiro','portaria','porteiro.silva','e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'COND-001');
+
+INSERT INTO funcionarios (nome,cpf,cargo,setor,login,senha_hash,codigo_condominio)
+VALUES ('Marcos Pereira Lima','20230340450','porteiro','portaria','porteiro.marcos','e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'COND-001');
+
+INSERT INTO funcionarios (nome,cpf,cargo,setor,login,senha_hash,codigo_condominio)
+VALUES ('Claudia Regina Borges','30340450560','administrador','administracao','admin.claudia','e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'COND-001');
+
+INSERT INTO funcionarios (nome,cpf,cargo,setor,login,senha_hash,codigo_condominio)
+VALUES ('Fatima Souza Andrade','40450560670','outro','limpeza','limpeza.fatima','e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'COND-001');
+
+INSERT INTO funcionarios (nome,cpf,cargo,setor,login,senha_hash,codigo_condominio)
+VALUES ('Paulo Oliveira Neto','50560670780','zelador','manutencao','zelador.paulo','e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'COND-001');
+
+
+-- ──────────────────────────────────────────────
+-- 3.8 — Veiculos (5 registros)
+-- ──────────────────────────────────────────────
+
+INSERT INTO veiculos (placa,modelo,cor,morador_id,codigo_condominio)
+VALUES ('ABC-1234','Honda Civic','Prata',1, 'COND-001');
+
+INSERT INTO veiculos (placa,modelo,cor,morador_id,codigo_condominio)
+VALUES ('DEF-5678','Fiat Pulse','Branco',4, 'COND-001');
+
+INSERT INTO veiculos (placa,modelo,cor,morador_id,codigo_condominio)
+VALUES ('GHI-9012','Toyota Corolla','Preto',8, 'COND-001');
+
+INSERT INTO veiculos (placa,modelo,cor,funcionario_id,codigo_condominio)
+VALUES ('JKL-3456','Moto Honda CG','Vermelha',2, 'COND-001');
+
+INSERT INTO veiculos (placa,modelo,cor,visitante_id,codigo_condominio)
+VALUES ('QRS-5678','VW Polo','Cinza',2, 'COND-001');
+
+
+-- ──────────────────────────────────────────────
+-- 3.9 — Registros de acesso (10 registros)
+-- ──────────────────────────────────────────────
+
+-- Roberto visitou Joao (ja saiu):
+INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,observacoes,codigo_condominio)
+VALUES (1,1,1,'pedestre',0,1,0,'Visita familiar','2026-04-08 14:00:00','2026-04-08 17:30:00','Porteiro Silva','Tio do morador', 'COND-001');
+
+-- Fernanda visitou Maria — entrou de carro pela garagem:
+INSERT INTO acessos (visitante_id,morador_id,funcionario_id,veiculo_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,codigo_condominio)
+VALUES (2,2,1,5,'garagem',0,1,1,'Visita social','2026-04-09 10:00:00','2026-04-09 12:00:00','Porteiro Silva', 'COND-001');
+
+-- Marcos entregou pizza (portao de pedestres):
+INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,observacoes,codigo_condominio)
+VALUES (3,3,2,'pedestre',1,0,0,'Entrega - Pizza','2026-04-09 19:45:00','2026-04-09 19:52:00','Porteiro Marcos','Delivery de moto', 'COND-001');
+
+-- Roberto esta dentro agora (manutencao na Ana — sem saida):
+INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,porteiro,codigo_condominio)
+VALUES (1,4,1,'pedestre',0,1,0,'Manutencao do ar-condicionado','Porteiro Silva', 'COND-001');
+
+-- Camila visitou Maria (ja saiu):
+INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,codigo_condominio)
+VALUES (5,2,2,'pedestre',1,0,0,'Visita social - amiga','2026-04-07 15:00:00','2026-04-07 18:30:00','Porteiro Marcos', 'COND-001');
+
+-- Jean Pierre fez manutencao na Dona Teresa (ja saiu):
+INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,observacoes,codigo_condominio)
+VALUES (6,8,1,'pedestre',1,1,0,'Manutencao - Ar condicionado','2026-04-08 09:00:00','2026-04-08 11:45:00','Porteiro Silva','Tecnico autorizado', 'COND-001');
+
+-- Sandra visitou Pedro (1a visita — ja saiu):
+INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,codigo_condominio)
+VALUES (7,3,2,'pedestre',0,1,0,'Visita familiar - irma','2026-04-06 10:00:00','2026-04-06 13:00:00','Porteiro Marcos', 'COND-001');
+
+-- Sandra visitou Pedro (2a visita — ja saiu):
+INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,observacoes,codigo_condominio)
+VALUES (7,3,1,'pedestre',0,1,0,'Visita familiar - irma','2026-04-09 16:00:00','2026-04-09 20:00:00','Porteiro Silva','Trouxe bolo de aniversario', 'COND-001');
+
+-- Marcos fez entrega de restaurante (ja saiu):
+INSERT INTO acessos (visitante_id,morador_id,funcionario_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,dt_entrada_em,dt_saida_em,porteiro,observacoes,codigo_condominio)
+VALUES (3,8,2,'pedestre',1,0,0,'Entrega - Restaurante Japones','2026-04-09 12:30:00','2026-04-09 12:38:00','Porteiro Marcos','Delivery de moto', 'COND-001');
+
+-- Fernanda esta visitando Lucia AGORA (sem saida):
+INSERT INTO acessos (visitante_id,morador_id,funcionario_id,veiculo_id,tipo_acesso,auth_senha,auth_digital,auth_facial,motivo,porteiro,observacoes,codigo_condominio)
+VALUES (2,6,1,5,'garagem',0,1,1,'Reuniao de condominio informal','Porteiro Silva','Veio de carro, placa QRS-5678', 'COND-001');
+
+
+-- ============================================================================
+-- PARTE 4: CONSULTAS DE ESTUDO
+-- ============================================================================
+-- Configure o SQLite para exibicao bonita:
+--   .mode column
+--   .headers on
+
+-- 4.1 — BASICAS -------------------------------------------------------------
+
+-- Todos os moradores ativos:
+SELECT id, nome, cpf, telefone, ativo FROM moradores WHERE ativo = 1;
+
+-- Moradores sem aceite LGPD pendente:
+SELECT nome, cpf FROM moradores WHERE dt_aceite_lgpd IS NULL AND ativo = 1;
+
+-- Fotos vencidas:
+SELECT nome, dt_foto_validade FROM moradores
+WHERE dt_foto_validade < DATE('now') AND ativo = 1;
+
+
+-- 4.2 — MORADOR + RESIDENCIA (JOIN N:N) ------------------------------------
+
+-- Visao completa: morador + sua unidade:
+SELECT
+    m.nome,
+    r.numero_residencia,
+    r.bloco,
+    r.andar,
+    r.tipo_moradia,        -- CAMPO DO ADEMILSON
+    r.interfone,           -- CAMPO DO ADEMILSON
+    r.observacao,          -- CAMPO DO ADEMILSON
+    mr.tipo_morador,
+    r.codigo_condominio
+FROM moradores m
+    JOIN morador_residencia mr ON m.id = mr.morador_id
+    JOIN residencias r         ON mr.residencia_id = r.id
+WHERE m.ativo = 1 AND mr.ativo = 1
+ORDER BY r.bloco, r.numero_residencia;
+
+-- Moradores com mais de uma unidade:
+SELECT m.nome, COUNT(mr.residencia_id) AS total_unidades
+FROM moradores m
+    JOIN morador_residencia mr ON m.id = mr.morador_id
+WHERE m.ativo = 1 AND mr.ativo = 1
+GROUP BY m.id
+HAVING COUNT(mr.residencia_id) > 1;
+
+-- Proprietarios vs inquilinos por tipo de moradia:
+SELECT r.tipo_moradia, mr.tipo_morador, COUNT(*) AS quantidade
+FROM morador_residencia mr
+    JOIN residencias r ON mr.residencia_id = r.id
+WHERE mr.ativo = 1
+GROUP BY r.tipo_moradia, mr.tipo_morador;
+
+
+-- 4.3 — ACESSOS COM JOIN ---------------------------------------------------
+
+-- Todos os acessos com nomes:
+SELECT
+    a.id AS registro,
+    v.nome AS visitante,
+    m.nome AS morador_visitado,
+    a.motivo,
+    a.tipo_acesso,
+    a.dt_entrada_em,
+    a.dt_saida_em,
+    a.porteiro
+FROM acessos a
+    JOIN visitantes v ON a.visitante_id = v.id
+    JOIN moradores  m ON a.morador_id   = m.id
+ORDER BY a.dt_entrada_em DESC;
+
+-- Quem esta DENTRO agora?
+SELECT v.nome AS visitante, m.nome AS morador, a.motivo, a.dt_entrada_em
+FROM acessos a
+    JOIN visitantes v ON a.visitante_id = v.id
+    JOIN moradores  m ON a.morador_id   = m.id
+WHERE a.dt_saida_em IS NULL;
+
+
+-- 4.4 — VEICULOS -----------------------------------------------------------
+
+-- Todos os veiculos com nome do proprietario:
+SELECT
+    v.placa, v.modelo, v.cor,
+    CASE
+        WHEN v.morador_id     IS NOT NULL THEN 'Morador: '     || m.nome
+        WHEN v.funcionario_id IS NOT NULL THEN 'Funcionario: ' || f.nome
+        WHEN v.visitante_id   IS NOT NULL THEN 'Visitante: '   || vis.nome
+        ELSE 'Sem proprietario'
+    END AS proprietario
+FROM veiculos v
+    LEFT JOIN moradores    m   ON v.morador_id     = m.id
+    LEFT JOIN funcionarios f   ON v.funcionario_id = f.id
+    LEFT JOIN visitantes   vis ON v.visitante_id   = vis.id
+WHERE v.ativo = 1;
+
+
+-- 4.5 — RESUMO DO CONDOMINIO -----------------------------------------------
+SELECT
+    (SELECT COUNT(*) FROM moradores WHERE ativo = 1)                              AS moradores_ativos,
+    (SELECT COUNT(*) FROM visitantes)                                              AS total_visitantes,
+    (SELECT COUNT(*) FROM visitantes WHERE bloqueado = 1)                          AS visitantes_bloqueados,
+    (SELECT COUNT(*) FROM acessos WHERE dt_saida_em IS NULL)                       AS dentro_agora,
+    (SELECT COUNT(*) FROM acessos)                                                 AS total_acessos,
+    (SELECT COUNT(*) FROM moradores WHERE dt_aceite_lgpd IS NULL AND ativo = 1)   AS lgpd_pendente;
+
+
+-- ============================================================================
+-- PARTE 5: EXERCICIOS PARA PRATICAR
+-- ============================================================================
+
+-- EXERCICIO 1: Insira um novo morador chamado 'Luiza Barbosa',
+--   CPF '22233344455', telefone '83944556677'.
+-- Sua resposta aqui:
+
+-- RESPOSTA 1:
+-- INSERT INTO moradores (nome, cpf, telefone, codigo_condominio)
+-- VALUES ('Luiza Barbosa', '22233344455', '83944556677', '<hash-sha256>');
+
+
+-- EXERCICIO 2: Adicione uma residencia para a Luiza (Apto 401, Bloco B).
+-- Dica: primeiro INSERT em residencias, depois em morador_residencia.
+-- Sua resposta aqui:
+
+-- RESPOSTA 2:
+-- INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone)
+-- VALUES ('COND-001', '401', 'B', 4, 'apartamento', '401');
+-- INSERT INTO morador_residencia (morador_id, residencia_id, tipo_morador, codigo_condominio)
+-- VALUES (11, 11, 'inquilino', '<hash>');
+
+
+-- EXERCICIO 3: Registre a SAIDA do Roberto (acesso id=4, ainda dentro).
+-- Dica: UPDATE acessos SET dt_saida_em = ... WHERE id = 4
+-- Sua resposta aqui:
+
+-- RESPOSTA 3:
+-- UPDATE acessos SET dt_saida_em = '2026-04-09 16:00:00' WHERE id = 4;
+
+
+-- EXERCICIO 4: Liste todos os moradores do Bloco A com seus interfones.
+-- Dica: JOIN moradores + morador_residencia + residencias WHERE bloco='A'
+-- Sua resposta aqui:
+
+-- RESPOSTA 4:
+-- SELECT m.nome, r.numero_residencia, r.interfone, mr.tipo_morador
+-- FROM moradores m
+--     JOIN morador_residencia mr ON m.id = mr.morador_id
+--     JOIN residencias r ON mr.residencia_id = r.id
+-- WHERE r.bloco = 'A' AND m.ativo = 1
+-- ORDER BY r.numero_residencia;
+
+
+-- EXERCICIO 5 (DESAFIO): Quantos moradores de cada tipo_moradia existem?
+-- Dica: JOIN + GROUP BY tipo_moradia
+-- Sua resposta aqui:
+
+-- RESPOSTA 5:
+-- SELECT r.tipo_moradia, COUNT(DISTINCT m.id) AS total_moradores
+-- FROM moradores m
+--     JOIN morador_residencia mr ON m.id = mr.morador_id
+--     JOIN residencias r ON mr.residencia_id = r.id
+-- WHERE m.ativo = 1 AND mr.ativo = 1
+-- GROUP BY r.tipo_moradia;
+
+
+-- EXERCICIO 6 (DESAFIO): Quem tem MAIS de uma unidade? (demo N:N)
+-- Dica: GROUP BY m.id + HAVING COUNT > 1
+-- Sua resposta aqui:
+
+-- RESPOSTA 6:
+-- SELECT m.nome, COUNT(mr.residencia_id) AS unidades
+-- FROM moradores m
+--     JOIN morador_residencia mr ON m.id = mr.morador_id
+-- WHERE mr.tipo_morador = 'proprietario' AND mr.ativo = 1
+-- GROUP BY m.id HAVING COUNT(mr.residencia_id) > 1;
+
+
+-- EXERCICIO 7 (DESAFIO LGPD): Qual % de moradores ainda nao aceitou os termos?
+-- Dica: SUM(CASE WHEN...) / COUNT(*) * 100.0
+-- Sua resposta aqui:
+
+-- RESPOSTA 7:
+-- SELECT
+--     COUNT(*) AS total,
+--     SUM(CASE WHEN dt_aceite_lgpd IS NULL THEN 1 ELSE 0 END) AS sem_aceite,
+--     ROUND(SUM(CASE WHEN dt_aceite_lgpd IS NULL THEN 1.0 ELSE 0 END) / COUNT(*) * 100, 1) AS pct_pendente
+-- FROM moradores WHERE ativo = 1;
+
+
+-- ============================================================================
+-- GLOSSARIO RAPIDO
+-- ============================================================================
+-- PRIMARY KEY   — numero unico do registro (como RG — nunca repete)
+-- AUTOINCREMENT — banco cria o numero sozinho (1, 2, 3...)
+-- NOT NULL      — campo obrigatorio (nao pode ficar em branco)
+-- UNIQUE        — nao pode repetir na tabela
+-- DEFAULT       — valor automatico se nao informado
+-- CHECK(...)    — regra de validacao — banco RECUSA dados invalidos
+-- FOREIGN KEY   — chave estrangeira: link entre tabelas (relacao entre dados)
+-- BLOB          — dados binarios (foto, PDF, biometria)
+-- DATE          — apenas data: 'AAAA-MM-DD'
+-- DATETIME      — data e hora: 'AAAA-MM-DD HH:MM:SS'
+-- BOOLEAN       — verdadeiro/falso, armazenado como 0 ou 1 no SQLite
+-- INDEX         — estrutura de busca rapida (como indice de livro)
+-- LEFT JOIN     — retorna todos da tabela esquerda, mesmo sem correspondencia
+-- SHA-256       — funcao que transforma texto em hash de 64 hex chars
+-- CODIGO_CONDOMINIO — identificador do condomínio, não único entre registros do mesmo condomínio
+-- LGPD          — Lei Geral de Protecao de Dados (Lei 13.709/2018)
+-- SOFT DELETE   — desativar (ativo=0) em vez de deletar — preserva historico
+-- JUNCTION TABLE — tabela intermediaria que resolve relacao N:N
+-- ============================================================================
+
+
+-- ============================================================================
+-- PARTE 6: GABARITO — RESPOSTAS EXECUTAVEIS
+-- ============================================================================
+-- Ademilson, so olhe aqui DEPOIS de tentar sozinho!
+-- Copie e cole no terminal do SQLite para testar.
+-- Antes de rodar, configure a exibicao bonita:
+--   .mode column
+--   .headers on
+-- ============================================================================
+
+-- ──────────────────────────────────────────────
+-- RESPOSTA 1: Inserir novo morador
+-- ──────────────────────────────────────────────
+INSERT INTO moradores (nome, cpf, telefone, codigo_condominio)
+VALUES ('Luiza Barbosa', '22233344455', '83944556677',
+        'gabarito_resp1_luiza_barbosa_22233344455');
+
+-- Conferir:
+SELECT id, nome, cpf, telefone FROM moradores WHERE cpf = '22233344455';
+
+
+-- ──────────────────────────────────────────────
+-- RESPOSTA 2: Residencia + vinculo morador_residencia
+-- ──────────────────────────────────────────────
+INSERT INTO residencias (codigo_condominio, numero_residencia, bloco, andar, tipo_moradia, interfone)
+VALUES ('COND-001', '401', 'B', 4, 'apartamento', '401',
+        'gabarito_resp2_residencia_401_bloco_b');
+
+INSERT INTO morador_residencia (morador_id, residencia_id, tipo_morador, codigo_condominio)
+VALUES (
+    (SELECT id FROM moradores WHERE cpf = '22233344455'),
+    (SELECT id FROM residencias WHERE numero_residencia = '401' AND bloco = 'B'),
+    'inquilino',
+    'gabarito_resp2_vinculo_luiza_401b'
+);
+
+-- Conferir:
+SELECT m.nome, r.numero_residencia, r.bloco, mr.tipo_morador
+FROM moradores m
+    JOIN morador_residencia mr ON m.id = mr.morador_id
+    JOIN residencias r ON mr.residencia_id = r.id
+WHERE m.cpf = '22233344455';
+
+
+-- ──────────────────────────────────────────────
+-- RESPOSTA 3: Registrar saida do Roberto
+-- ──────────────────────────────────────────────
+UPDATE acessos SET dt_saida_em = '2026-04-09 16:00:00' WHERE id = 4;
+
+-- Conferir (ninguem sem saida no registro 4):
+SELECT id, dt_entrada_em, dt_saida_em FROM acessos WHERE id = 4;
+
+
+-- ──────────────────────────────────────────────
+-- RESPOSTA 4: Moradores do Bloco A com interfone
+-- ──────────────────────────────────────────────
+SELECT m.nome, r.numero_residencia, r.interfone, mr.tipo_morador
+FROM moradores m
+    JOIN morador_residencia mr ON m.id = mr.morador_id
+    JOIN residencias r ON mr.residencia_id = r.id
+WHERE r.bloco = 'A' AND m.ativo = 1
+ORDER BY r.numero_residencia;
+
+
+-- ──────────────────────────────────────────────
+-- RESPOSTA 5: Moradores por tipo_moradia
+-- ──────────────────────────────────────────────
+SELECT r.tipo_moradia, COUNT(DISTINCT m.id) AS total_moradores
+FROM moradores m
+    JOIN morador_residencia mr ON m.id = mr.morador_id
+    JOIN residencias r ON mr.residencia_id = r.id
+WHERE m.ativo = 1 AND mr.ativo = 1
+GROUP BY r.tipo_moradia;
+
+
+-- ──────────────────────────────────────────────
+-- RESPOSTA 6: Quem tem mais de uma unidade (N:N)
+-- ──────────────────────────────────────────────
+SELECT m.nome, COUNT(mr.residencia_id) AS unidades
+FROM moradores m
+    JOIN morador_residencia mr ON m.id = mr.morador_id
+WHERE mr.tipo_morador = 'proprietario' AND mr.ativo = 1
+GROUP BY m.id
+HAVING COUNT(mr.residencia_id) > 1;
+
+
+-- ──────────────────────────────────────────────
+-- RESPOSTA 7: Percentual LGPD pendente
+-- ──────────────────────────────────────────────
+SELECT
+    COUNT(*) AS total,
+    SUM(CASE WHEN dt_aceite_lgpd IS NULL THEN 1 ELSE 0 END) AS sem_aceite,
+    ROUND(
+        SUM(CASE WHEN dt_aceite_lgpd IS NULL THEN 1.0 ELSE 0 END)
+        / COUNT(*) * 100, 1
+    ) AS pct_pendente
+FROM moradores
+WHERE ativo = 1;
+
+-- ============================================================================
+-- FIM DO GABARITO
+-- ============================================================================

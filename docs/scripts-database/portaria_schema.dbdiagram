@@ -1,0 +1,246 @@
+{
+  "version": "1.0.0",
+  "darkMode": true,
+  "gridEnabling": false,
+  "detailLevel": "All",
+  "tablePositions": [
+    {
+      "name": "moradores",
+      "schemaName": "public",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "assinatura_condominio",
+      "schemaName": "public",
+      "x": 562.29931640625,
+      "y": 12
+    },
+    {
+      "name": "residencias",
+      "schemaName": "public",
+      "x": 1132.5986328125,
+      "y": 12
+    },
+    {
+      "name": "morador_residencia",
+      "schemaName": "public",
+      "x": 1682.89794921875,
+      "y": 12
+    },
+    {
+      "name": "visitantes",
+      "schemaName": "public",
+      "x": 12,
+      "y": 602
+    },
+    {
+      "name": "funcionarios",
+      "schemaName": "public",
+      "x": 12,
+      "y": 1064
+    },
+    {
+      "name": "veiculos",
+      "schemaName": "public",
+      "x": 562.29931640625,
+      "y": 906
+    },
+    {
+      "name": "acessos",
+      "schemaName": "public",
+      "x": 1132.5986328125,
+      "y": 475
+    },
+    {
+      "name": "config_acesso_morador",
+      "schemaName": "public",
+      "x": 562.29931640625,
+      "y": 539
+    }
+  ],
+  "tableGroupCollapseStates": [],
+  "stickyNoteLayouts": [],
+  "referencePaths": [
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "moradores",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "responsavel_id"
+      ],
+      "secondTableName": "assinatura_condominio",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "codigo_condominio"
+      ],
+      "firstTableName": "assinatura_condominio",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "codigo_condominio"
+      ],
+      "secondTableName": "residencias",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "moradores",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "morador_id"
+      ],
+      "secondTableName": "morador_residencia",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "residencias",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "residencia_id"
+      ],
+      "secondTableName": "morador_residencia",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "moradores",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "morador_id"
+      ],
+      "secondTableName": "veiculos",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "funcionarios",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "funcionario_id"
+      ],
+      "secondTableName": "veiculos",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "visitantes",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "visitante_id"
+      ],
+      "secondTableName": "veiculos",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "visitantes",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "visitante_id"
+      ],
+      "secondTableName": "acessos",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "moradores",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "morador_id"
+      ],
+      "secondTableName": "acessos",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "funcionarios",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "funcionario_id"
+      ],
+      "secondTableName": "acessos",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "veiculos",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "veiculo_id"
+      ],
+      "secondTableName": "acessos",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "moradores",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "morador_id"
+      ],
+      "secondTableName": "config_acesso_morador",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    }
+  ]
+}

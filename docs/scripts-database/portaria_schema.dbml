@@ -1,0 +1,222 @@
+Table "moradores" {
+  "id" INTEGER [pk, increment]
+  "nome" TEXT [not null]
+  "cpf" TEXT [unique, not null, check: `length(cpf) = 11`]
+  "telefone" TEXT
+  "email" TEXT [check: `email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'`]
+  "dt_nascimento" DATE
+  "foto" BYTEA
+  "dt_foto_validade" DATE
+  "biometria" BYTEA
+  "dt_biometria_validade" DATE
+  "termos_lgpd" BYTEA
+  "dt_aceite_lgpd" TIMESTAMP
+  "ativo" BOOLEAN [not null, default: true]
+  "codigo_condominio" TEXT [not null]
+  "dt_criado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+  "dt_atualizado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+
+  Checks {
+    `NOT ativo OR dt_aceite_lgpd IS NOT NULL` [name: 'chk_moradores_lgpd_ativo']
+  }
+
+  Indexes {
+    nome [name: "idx_moradores_nome"]
+    ativo [name: "idx_moradores_ativo"]
+  }
+}
+
+Table "assinatura_condominio" {
+  "id" INTEGER [pk, increment]
+  "codigo_condominio" TEXT [unique, not null]
+  "nome_condominio" TEXT [not null]
+  "endereco" TEXT
+  "responsavel_id" INTEGER
+  "numero_contrato" TEXT [unique, not null]
+  "contrato" BYTEA
+  "dt_ativacao" DATE
+  "dt_vigencia_inicio" DATE [not null]
+  "dt_vigencia_fim" DATE [check: `dt_vigencia_fim IS NULL OR dt_vigencia_fim >= dt_vigencia_inicio`]
+  "status" TEXT [not null, check: `status IN ('ativo','pendente','vencido','cancelado')`, default: 'ativo']
+  "observacoes" TEXT
+  "dt_criado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+  "dt_atualizado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    status [name: "idx_assinatura_status"]
+    dt_vigencia_fim [name: "idx_assinatura_vig_fim"]
+  }
+}
+
+Table "residencias" {
+  "id" INTEGER [pk, increment]
+  "codigo_condominio" TEXT [not null]
+  "numero_residencia" TEXT [not null]
+  "bloco" TEXT
+  "quadra" TEXT
+  "andar" INTEGER
+  "tipo_moradia" TEXT [not null, check: `tipo_moradia IN ('apartamento','casa','comercial','outro')`, default: 'apartamento']
+  "interfone" TEXT
+  "observacao" TEXT
+  "ativo" BOOLEAN [not null, default: true]
+  "dt_criado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+  "dt_atualizado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    codigo_condominio [name: "idx_residencias_cond"]
+    numero_residencia [name: "idx_residencias_num"]
+    tipo_moradia [name: "idx_residencias_tipo"]
+  }
+}
+
+Table "morador_residencia" {
+  "id" INTEGER [pk, increment]
+  "morador_id" INTEGER [not null]
+  "residencia_id" INTEGER [not null]
+  "tipo_morador" TEXT [not null, check: `tipo_morador IN ('proprietario','inquilino')`, default: 'proprietario']
+  "dt_inicio" DATE [not null, default: `CURRENT_DATE`]
+  "dt_fim" DATE [check: `dt_fim IS NULL OR dt_fim >= dt_inicio`]
+  "ativo" BOOLEAN [not null, default: true]
+  "codigo_condominio" TEXT [not null]
+  "dt_criado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    (morador_id, residencia_id, dt_inicio) [unique]
+    morador_id [name: "idx_mr_morador"]
+    residencia_id [name: "idx_mr_residencia"]
+    ativo [name: "idx_mr_ativo"]
+  }
+}
+
+Table "visitantes" {
+  "id" INTEGER [pk, increment]
+  "nome" TEXT [not null]
+  "documento" TEXT [not null]
+  "tipo_documento" TEXT [not null, check: `tipo_documento IN ('RG','CNH','PASSAPORTE','OUTRO')`, default: 'RG']
+  "telefone" TEXT
+  "foto" BYTEA
+  "bloqueado" BOOLEAN [not null, default: false]
+  "motivo_bloqueio" TEXT
+  "dt_validade_inicio" DATE
+  "dt_validade_fim" DATE [check: `dt_validade_fim IS NULL OR dt_validade_fim >= dt_validade_inicio`]
+  "codigo_condominio" TEXT [not null]
+  "dt_criado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+
+  Checks {
+    `NOT bloqueado OR motivo_bloqueio IS NOT NULL` [name: 'chk_visitantes_bloqueio_motivo']
+  }
+
+  Indexes {
+    documento [name: "idx_visitantes_documento"]
+    bloqueado [name: "idx_visitantes_bloqueado"]
+  }
+}
+
+Table "funcionarios" {
+  "id" INTEGER [pk, increment]
+  "nome" TEXT [not null]
+  "cpf" TEXT [unique, not null, check: `length(cpf) = 11`]
+  "cargo" TEXT [not null, check: `cargo IN ('porteiro','zelador','administrador','outro')`, default: 'porteiro']
+  "setor" TEXT
+  "login" TEXT [unique, not null]
+  "senha_hash" TEXT [not null, check: `length(senha_hash) = 64`]
+  "ativo" BOOLEAN [not null, default: true]
+  "codigo_condominio" TEXT [not null]
+  "dt_criado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    cargo [name: "idx_funcionarios_cargo"]
+  }
+}
+
+Table "veiculos" {
+  "id" INTEGER [pk, increment]
+  "placa" TEXT [unique, not null, check: `length(placa) >= 7`]
+  "modelo" TEXT
+  "cor" TEXT
+  "morador_id" INTEGER
+  "funcionario_id" INTEGER
+  "visitante_id" INTEGER
+  "ativo" BOOLEAN [not null, default: true]
+  "codigo_condominio" TEXT [not null]
+  "dt_criado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+
+  Checks {
+    `(CASE WHEN morador_id     IS NOT NULL THEN 1 ELSE 0 END) +
+        (CASE WHEN funcionario_id IS NOT NULL THEN 1 ELSE 0 END) +
+        (CASE WHEN visitante_id   IS NOT NULL THEN 1 ELSE 0 END) <= 1` [name: 'chk_veiculos_owner_exclusivo']
+  }
+
+  Indexes {
+    morador_id [name: "idx_veiculos_morador"]
+  }
+}
+
+Table "acessos" {
+  "id" INTEGER [pk, increment]
+  "visitante_id" INTEGER [not null]
+  "morador_id" INTEGER
+  "funcionario_id" INTEGER
+  "veiculo_id" INTEGER
+  "tipo_acesso" TEXT [not null, check: `tipo_acesso IN ('pedestre','garagem')`, default: 'pedestre']
+  "auth_senha" BOOLEAN [not null, default: false]
+  "auth_digital" BOOLEAN [not null, default: false]
+  "auth_facial" BOOLEAN [not null, default: false]
+  "motivo" TEXT [not null]
+  "dt_entrada_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+  "dt_saida_em" TIMESTAMP [check: `dt_saida_em IS NULL OR dt_saida_em >= dt_entrada_em`]
+  "observacoes" TEXT
+  "codigo_condominio" TEXT [not null]
+
+  Checks {
+    `auth_senha OR auth_digital OR auth_facial`
+  }
+
+  Indexes {
+    dt_entrada_em [name: "idx_acessos_entrada"]
+    visitante_id [name: "idx_acessos_visitante"]
+    morador_id [name: "idx_acessos_morador"]
+    funcionario_id [name: "idx_acessos_funcionario"]
+    veiculo_id [name: "idx_acessos_veiculo"]
+  }
+}
+
+Table "config_acesso_morador" {
+  "id" INTEGER [pk, increment]
+  "morador_id" INTEGER [unique, not null]
+  "fatores_requeridos" INTEGER [not null, check: `fatores_requeridos IN (1,2)`, default: 1]
+  "permite_senha" BOOLEAN [not null, default: true]
+  "permite_digital" BOOLEAN [not null, default: true]
+  "permite_facial" BOOLEAN [not null, default: false]
+  "codigo_condominio" TEXT [not null]
+  "dt_criado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+  "dt_atualizado_em" TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+
+  Checks {
+    `permite_senha OR permite_digital OR permite_facial`
+  }
+}
+
+Ref "fk_assinatura_responsavel":"moradores"."id" < "assinatura_condominio"."responsavel_id" [update: cascade, delete: set null]
+
+Ref "fk_residencias_condominio":"assinatura_condominio"."codigo_condominio" < "residencias"."codigo_condominio" [update: cascade, delete: restrict]
+
+Ref "fk_mr_morador":"moradores"."id" < "morador_residencia"."morador_id" [update: cascade, delete: restrict]
+
+Ref "fk_mr_residencia":"residencias"."id" < "morador_residencia"."residencia_id" [update: cascade, delete: restrict]
+
+Ref "fk_veiculos_morador":"moradores"."id" < "veiculos"."morador_id" [update: cascade, delete: set null]
+
+Ref "fk_veiculos_funcionario":"funcionarios"."id" < "veiculos"."funcionario_id" [update: cascade, delete: set null]
+
+Ref "fk_veiculos_visitante":"visitantes"."id" < "veiculos"."visitante_id" [update: cascade, delete: set null]
+
+Ref "fk_acessos_visitante":"visitantes"."id" < "acessos"."visitante_id" [update: cascade, delete: restrict]
+
+Ref "fk_acessos_morador":"moradores"."id" < "acessos"."morador_id" [update: cascade, delete: restrict]
+
+Ref "fk_acessos_funcionario":"funcionarios"."id" < "acessos"."funcionario_id" [update: cascade, delete: restrict]
+
+Ref "fk_acessos_veiculo":"veiculos"."id" < "acessos"."veiculo_id" [update: cascade, delete: restrict]
+
+Ref "fk_cam_morador":"moradores"."id" < "config_acesso_morador"."morador_id" [update: cascade, delete: cascade]
